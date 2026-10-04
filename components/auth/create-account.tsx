@@ -1,6 +1,7 @@
 
 "use client";
 
+import { ROLES, DEPARTMENTS } from "@/lib/constants";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -275,9 +276,11 @@ export default function CreateAccount() {
                       <option value="" disabled>
                         Select your role / position
                       </option>
-                      <option value="Registrar">Registrar</option>
-                      <option value="Administrator">Administrator</option>
-                      <option value="Staff">Staff</option>
+                      {ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
                     </select>
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600">
                       ▾
@@ -383,13 +386,11 @@ export default function CreateAccount() {
                     <option value="" disabled>
                       Select your department or office
                     </option>
-                    <option value="Administration">Administration</option>
-                    <option value="Finance Office">Finance Office</option>
-                    <option value="Guidance Office">Guidance Office</option>
-                    <option value="Information Technology">
-                      Information Technology
-                    </option>
-                    <option value="Other">Other</option>
+                    {DEPARTMENTS.map((department) => (
+                      <option key={department} value={department}>
+                        {department}
+                      </option>
+                    ))}
                   </select>
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-600">
                     ▾

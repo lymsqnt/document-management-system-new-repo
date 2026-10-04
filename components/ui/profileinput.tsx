@@ -1,9 +1,11 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
+
 type ProfileInputProps = {
   label: string;
   value: string;
-  icon?: string;
+  icon?: LucideIcon;
   editing: boolean;
   onChange: (value: string) => void;
   type?: string;
@@ -13,7 +15,7 @@ type ProfileInputProps = {
 export default function ProfileInput({
   label,
   value,
-  icon,
+  icon: Icon,
   editing,
   onChange,
   type = "text",
@@ -26,7 +28,9 @@ export default function ProfileInput({
       </span>
 
       <span className="flex h-9 w-full items-center gap-2 rounded-md border border-slate-300 bg-white px-2">
-        {icon && <span className="shrink-0 text-sm">{icon}</span>}
+        {Icon && (
+          <Icon size={15} className="shrink-0 text-slate-500" />
+        )}
 
         <input
           type={type}

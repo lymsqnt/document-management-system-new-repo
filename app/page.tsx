@@ -1,5 +1,5 @@
-import AccountRecovery from "@/components/auth/Account-recovery";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <AccountRecovery />;
+  redirect("/login");
 }

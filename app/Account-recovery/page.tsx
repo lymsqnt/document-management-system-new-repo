@@ -1,4 +1,4 @@
-import AccountRecovery from "@/components/auth/Account-recovery";
+   import AccountRecovery from "@/components/auth/account-recovery";
 
 export default function AccountRecoveryPage() {
   return <AccountRecovery />;

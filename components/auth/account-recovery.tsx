@@ -7,10 +7,7 @@ import Checkbox from "@/components/ui/checkbox";
 
 export default function AccountRecovery() {
   return (
-<<<<<<< HEAD
     
-=======
->>>>>>> b976e4829c91332e2ee1ab5a458a12a580c94b84
     <main
       className="relative min-h-screen overflow-x-hidden bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/school-bg.png')" }}
@@ -29,11 +26,7 @@ export default function AccountRecovery() {
         className="pointer-events-none absolute left-1/2 top-5 z-30 h-20 w-20 -translate-x-1/2 object-contain drop-shadow-xl sm:top-7 sm:h-24 sm:w-24 md:h-28 md:w-28 lg:left-[7%] lg:top-1/2 lg:h-60 lg:w-60 lg:-translate-x-0 lg:-translate-y-1/2 xl:h-72 xl:w-72"
       />
 
-<<<<<<< HEAD
       <div className="ml-50 relative z-20 flex min-h-screen flex-col items-center justify-center px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-=======
-      <div className="relative z-20 flex min-h-screen flex-col items-center justify-center px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
->>>>>>> b976e4829c91332e2ee1ab5a458a12a580c94b84
         <div className="mb-4 w-full pt-24 text-center sm:pt-28 md:pt-32 lg:pt-0">
           <h1 className="text-lg font-bold leading-tight tracking-tight text-black sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl">
             QUEZONIAN EDUCATIONAL COLLEGE, INC
@@ -44,12 +37,8 @@ export default function AccountRecovery() {
           </p>
         </div>
 
-<<<<<<< HEAD
       
         <fieldset className=" card card-sm w-full max-w-md overflow-hidden bg-white text-black shadow-2xl sm:max-w-md md:max-w-lg lg:max-w-2xl">
-=======
-        <section className="card w-full max-w-sm overflow-hidden bg-white text-black shadow-2xl sm:max-w-md md:max-w-lg lg:max-w-2xl">
->>>>>>> b976e4829c91332e2ee1ab5a458a12a580c94b84
 
           <div className="h-2 bg-gradient-to-r from-blue-900 via-blue-700 to-blue-600 sm:h-3" />
 
@@ -70,11 +59,7 @@ export default function AccountRecovery() {
                 </h2>
               </div>
 
-<<<<<<< HEAD
               <p className="mx-auto mt-2 max-w-md text-[11px] leading-tight text-gray-700 sm:text-xs md:text-sm ml-20">
-=======
-              <p className="mx-auto mt-2 max-w-md text-[11px] leading-tight text-gray-700 sm:text-xs md:text-sm">
->>>>>>> b976e4829c91332e2ee1ab5a458a12a580c94b84
                 Enter your registered email address and we'll
                 <br className="hidden sm:block" />
                 send you instructions to reset your password.
@@ -124,7 +109,6 @@ export default function AccountRecovery() {
               <span className="text-[11px] text-gray-500 sm:text-xs lg:text-sm">
                 Remember your password?
               </span>
-<<<<<<< HEAD
           <a href="/login">
               <button 
                 type="button"
@@ -138,19 +122,6 @@ export default function AccountRecovery() {
           </div>
         </fieldset>
        
-=======
-
-              <button
-                type="button"
-                className="text-[11px] font-semibold text-blue-800 hover:text-blue-600 hover:underline sm:text-xs lg:text-sm"
-              >
-                Login Here
-              </button>
-            </div>
-
-          </div>
-        </section>
->>>>>>> b976e4829c91332e2ee1ab5a458a12a580c94b84
       </div>
     </main>
   );

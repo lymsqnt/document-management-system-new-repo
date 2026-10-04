@@ -1,21 +1,25 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
+
 type ProfileSelectProps = {
   label: string;
   value: string;
-  icon?: string;
+  icon?: LucideIcon;
   editing: boolean;
   options: string[];
   onChange: (value: string) => void;
+  placeholder?: string;
 };
 
 export default function ProfileSelect({
   label,
   value,
-  icon,
+  icon: Icon,
   editing,
   options,
   onChange,
+  placeholder = "Select an option",
 }: ProfileSelectProps) {
   return (
     <label className="block min-w-0">
@@ -24,32 +28,20 @@ export default function ProfileSelect({
       </span>
 
       <span className="flex h-9 w-full items-center gap-2 rounded-md border border-slate-300 bg-white px-2">
-        {icon && <span className="shrink-0 text-sm">{icon}</span>}
+        {Icon && (
+          <Icon size={15} className="shrink-0 text-slate-500" />
+        )}
 
         <select
           value={value}
           disabled={!editing}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full min-w-0 bg-white text-[11px] !text-slate-900 outline-none disabled:opacity-100"
+          className="w-full min-w-0 bg-white text-[11px] !text-slate-900 outline-none disabled:cursor-default disabled:opacity-100"
         >
-          {value && !options.includes(value) && (
-            <option value={value} className="bg-white text-slate-900">
-              {value}
-            </option>
-          )}
-
-          {!value && (
-            <option value="" disabled className="bg-white text-slate-500">
-              Select {label}
-            </option>
-          )}
+          <option value="">{placeholder}</option>
 
           {options.map((option) => (
-            <option
-              key={option}
-              value={option}
-              className="bg-white text-slate-900"
-            >
+            <option key={option} value={option}>
               {option}
             </option>
           ))}

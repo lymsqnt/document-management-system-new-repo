@@ -187,3 +187,47 @@ export function updatePassword(
 
   return true;
 }
+
+export function getAccountPassword(username: string, email: string): string {
+  const account = getAccounts().find(
+    (item) => item.username === username && item.email === email
+  );
+
+  return account?.password ?? "";
+}
+
+export function changePassword(
+  username: string,
+  email: string,
+  currentPassword: string,
+  newPassword: string
+): { success: true } | { success: false; message: string } {
+  const accounts = getAccounts();
+
+  const account = accounts.find(
+    (item) => item.username === username && item.email === email
+  );
+
+  if (!account) {
+    return {
+      success: false,
+      message: "Account not found. Please log in again.",
+    };
+  }
+
+  if (account.password !== currentPassword) {
+    return { success: false, message: "Current password is incorrect." };
+  }
+
+  if (newPassword.length < 8) {
+    return {
+      success: false,
+      message: "New password must be at least 8 characters.",
+    };
+  }
+
+  account.password = newPassword;
+  saveAccounts(accounts);
+
+  return { success: true };
+}
