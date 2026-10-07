@@ -8,6 +8,7 @@ export type DemoAccount = {
   address?: string;
   birthday?: string;
   gender?: string;
+  profileImage?: string;
 };
 
 export type UserProfile = {
@@ -19,6 +20,7 @@ export type UserProfile = {
   address: string;
   birthday: string;
   gender: string;
+  profileImage?: string;
 };
 
 export type SafeUser = Omit<DemoAccount, "password">;
@@ -107,6 +109,7 @@ export function getCurrentUser(): UserProfile | null {
       address: user.address ?? "",
       birthday: user.birthday ?? "",
       gender: user.gender ?? "",
+      profileImage: user.profileImage ?? "",
     };
   } catch {
     return null;
@@ -228,6 +231,56 @@ export function changePassword(
 
   account.password = newPassword;
   saveAccounts(accounts);
+
+  return { success: true };
+}
+
+export function findAccountByEmail(email: string): SafeUser | null {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const account = getAccounts().find(
+    (item) => item.email.toLowerCase() === normalizedEmail
+  );
+
+  return account ? toSafeUser(account) : null;
+}
+
+export function resetPasswordByEmail(
+  email: string,
+  newPassword: string
+): { success: true } | { success: false; message: string } {
+  const normalizedEmail = email.trim().toLowerCase();
+  const accounts = getAccounts();
+
+  const accountIndex = accounts.findIndex(
+    (item) => item.email.toLowerCase() === normalizedEmail
+  );
+
+  if (accountIndex === -1) {
+    return {
+      success: false,
+      message: "Account not found. Please start account recovery again.",
+    };
+  }
+
+  accounts[accountIndex] = {
+    ...accounts[accountIndex],
+    password: newPassword,
+  };
+
+  saveAccounts(accounts);
+
+  const currentUser = getCurrentUser();
+
+  if (
+  typeof window !== "undefined" &&
+  currentUser?.email.toLowerCase() === normalizedEmail
+) {
+  localStorage.setItem(
+    CURRENT_USER_KEY,
+    JSON.stringify(toSafeUser(accounts[accountIndex]))
+  );
+}
 
   return { success: true };
 }

@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import {
   Menu,
   Bell,
@@ -44,6 +50,7 @@ const initialProfile: ProfileData = {
   address: "",
   birthday: "",
   gender: "",
+  profileImage: "",
 };
 
 export default function Profile() {
@@ -63,13 +70,13 @@ export default function Profile() {
 
   const [saveError, setSaveError] = useState("");
 
-  // Password (Security tab)
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSaved, setPasswordSaved] = useState(false);
 
-  // Sidebar responsive behavior
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     const updateSidebar = () => {
       setSidebarOpen(window.innerWidth >= 1024);
@@ -81,7 +88,6 @@ export default function Profile() {
     return () => window.removeEventListener("resize", updateSidebar);
   }, []);
 
-  // Load the currently logged-in registered account
   useEffect(() => {
     const currentUser = getCurrentUser();
 
@@ -99,6 +105,7 @@ export default function Profile() {
       address: currentUser.address ?? "",
       birthday: currentUser.birthday ?? "",
       gender: currentUser.gender ?? "",
+      profileImage: currentUser.profileImage ?? "",
     };
 
     setProfile(userProfile);
@@ -116,7 +123,6 @@ export default function Profile() {
     setSaveError("");
   }, []);
 
-  // Update a profile field
   const updateField = (field: keyof ProfileData, value: string) => {
     setProfile((current) => ({
       ...current,
@@ -127,7 +133,6 @@ export default function Profile() {
     setSaveError("");
   };
 
-  // Validate and save profile to localStorage
   const handleSave = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaved(false);
@@ -180,7 +185,6 @@ export default function Profile() {
     setProfile(updatedProfile);
     setSavedProfile(updatedProfile);
 
-    // Keep the account reference updated if username/email changed
     setOriginalAccount({
       username: updatedProfile.username,
       email: updatedProfile.email,
@@ -190,7 +194,6 @@ export default function Profile() {
     setSaved(true);
   };
 
-  // Discard unsaved changes
   const handleCancel = () => {
     setProfile(savedProfile);
     setEditing(false);
@@ -198,7 +201,6 @@ export default function Profile() {
     setSaveError("");
   };
 
-  // Save the password shown in the Security tab
   const handlePasswordSave = () => {
     setPasswordError("");
     setPasswordSaved(false);
@@ -222,6 +224,31 @@ export default function Profile() {
     setPasswordSaved(true);
   };
 
+  function handleProfileImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setSaveError("Please select a valid image file.");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      setProfile((current) => ({
+        ...current,
+        profileImage: String(reader.result),
+      }));
+
+      setSaved(false);
+      setSaveError("");
+    };
+
+    reader.readAsDataURL(file);
+  }
+
   const initials = profile.fullName
     .split(" ")
     .filter(Boolean)
@@ -230,21 +257,26 @@ export default function Profile() {
     .join("")
     .toUpperCase();
 
+  const profileAvatar = profile.profileImage ? (
+    <img
+      src={profile.profileImage}
+      alt={profile.fullName || "Profile photo"}
+      className="h-full w-full rounded-full object-cover"
+    />
+  ) : (
+    initials || <UserRound size={34} />
+  );
+
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[#f1f3fc] text-slate-800">
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main
-        className={`min-h-screen w-full transition-[margin] duration-300 ${
-          sidebarOpen
+        className={`min-h-screen w-full transition-[margin] duration-300 ${sidebarOpen
             ? "lg:ml-[275px] lg:w-[calc(100%-275px)]"
             : "ml-0 w-full"
-        }`}
+          }`}
       >
-        {/* Navbar */}
         <header className="sticky top-0 z-30 flex min-h-[58px] w-full items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 shadow-sm sm:px-5 lg:px-6">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <button
@@ -272,25 +304,29 @@ export default function Profile() {
             </button>
 
             <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-blue-500 bg-blue-100 text-sm font-semibold text-blue-800 sm:h-10 sm:w-10">
-                {initials || <UserRound size={18} />}
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-blue-500 bg-blue-100 text-sm font-semibold text-blue-800 sm:h-10 sm:w-10">
+                {profile.profileImage ? (
+                  <img
+                    src={profile.profileImage}
+                    alt={profile.fullName || "Profile photo"}
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  initials || <UserRound size={18} />
+                )}
               </div>
 
               <div className="hidden min-w-0 text-right sm:block">
                 <p className="max-w-[150px] truncate text-xs font-medium">
                   {profile.fullName}
                 </p>
-                <p className="text-[11px] text-slate-500">
-                  {profile.role}
-                </p>
+                <p className="text-[11px] text-slate-500">{profile.role}</p>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page content */}
         <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:space-y-5 sm:p-5 lg:p-6">
-          {/* Heading */}
           <section className="flex min-w-0 items-center gap-3 rounded-xl bg-gradient-to-r from-[#e9e9f7] via-white to-white px-3 py-4 shadow-sm sm:gap-4 sm:px-6">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#cbdafa] text-blue-600 sm:h-[68px] sm:w-[68px]">
               <UserRound
@@ -311,9 +347,7 @@ export default function Profile() {
             </div>
           </section>
 
-          {/* Profile card and details */}
           <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[260px_minmax(0,1fr)] xl:gap-5">
-            {/* Profile Card */}
             <section className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-white shadow-sm">
               <div className="relative h-28 shrink-0 overflow-hidden bg-gradient-to-br from-[#001b68] via-[#0643be] to-[#07165d] sm:h-[125px]">
                 <div className="absolute -right-8 -top-16 h-36 w-36 rounded-full border-[28px] border-blue-500/30" />
@@ -321,16 +355,27 @@ export default function Profile() {
               </div>
 
               <div className="-mt-14 flex min-w-0 flex-col items-center px-4 sm:-mt-[65px] sm:px-5">
-                <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-2xl font-bold text-blue-800 shadow-sm sm:h-[105px] sm:w-[105px] sm:text-3xl">
-                  {initials || <UserRound size={34} />}
+                <div className="relative">
+                  <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-blue-100 text-2xl font-bold text-blue-800 shadow-sm sm:h-[105px] sm:w-[105px] sm:text-3xl">
+                    {profileAvatar}
+                  </div>
 
                   <button
                     type="button"
                     aria-label="Change profile photo"
-                    className="absolute bottom-1 right-0 rounded-full bg-blue-700 p-1.5 text-white shadow"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-1 right-0 z-10 rounded-full bg-blue-700 p-1.5 text-white shadow hover:bg-blue-800"
                   >
                     <Camera size={13} />
                   </button>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileImageChange}
+                    className="hidden"
+                  />
                 </div>
 
                 <h2 className="mt-2 max-w-full break-words text-center text-base font-semibold sm:text-lg">
@@ -362,9 +407,7 @@ export default function Profile() {
               </div>
             </section>
 
-            {/* Information Panel */}
             <section className="min-w-0 w-full rounded-xl bg-white p-3 shadow-sm sm:p-5 lg:p-6">
-              {/* Tabs */}
               <div className="mb-5 flex w-full max-w-[340px] flex-wrap rounded-lg bg-[#dce5ff] p-1 sm:mb-6">
                 <button
                   type="button"
@@ -372,11 +415,10 @@ export default function Profile() {
                     setActiveTab("account");
                     setSaveError("");
                   }}
-                  className={`min-w-0 flex-1 rounded-md px-2 py-2 text-[11px] transition sm:text-xs ${
-                    activeTab === "account"
+                  className={`min-w-0 flex-1 rounded-md px-2 py-2 text-[11px] transition sm:text-xs ${activeTab === "account"
                       ? "bg-white/80 font-medium text-blue-800 underline underline-offset-2"
                       : "text-slate-800 hover:bg-white/40"
-                  }`}
+                    }`}
                 >
                   Account Information
                 </button>
@@ -387,11 +429,10 @@ export default function Profile() {
                     setActiveTab("security");
                     setSaveError("");
                   }}
-                  className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] transition sm:text-xs ${
-                    activeTab === "security"
+                  className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] transition sm:text-xs ${activeTab === "security"
                       ? "bg-white/80 font-medium text-blue-800 underline underline-offset-2"
                       : "text-slate-800 hover:bg-white/40"
-                  }`}
+                    }`}
                 >
                   <LockKeyhole size={13} />
                   Security
@@ -452,9 +493,7 @@ export default function Profile() {
                       icon={Building2}
                       editing={editing}
                       options={DEPARTMENTS}
-                      onChange={(value) =>
-                        updateField("department", value)
-                      }
+                      onChange={(value) => updateField("department", value)}
                     />
 
                     <ProfileInput
@@ -467,7 +506,6 @@ export default function Profile() {
                     />
                   </div>
 
-                  {/* Gender */}
                   <div className="pt-1">
                     <p className="mb-2 text-xs font-medium text-slate-800">
                       Gender
@@ -494,7 +532,6 @@ export default function Profile() {
                     </div>
                   </div>
 
-                  {/* Action buttons */}
                   <div className="flex flex-wrap justify-end gap-2 pt-3 sm:gap-3 sm:pt-4">
                     {editing ? (
                       <>

@@ -23,6 +23,7 @@ type SidebarProps = {
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Documents", href: "/documents", icon: FileText },
+  { label: "Student List", href: "/student-list", icon: Users },
   { label: "Request", href: "/request", icon: ClipboardList },
   { label: "Report", href: "/report", icon: BarChart3 },
   { label: "Users", href: "/users", icon: Users },
