@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Bell,
-  CalendarDays,
   ChevronDown,
   Eye,
   Menu,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import Sidebar from "@/components/layout/sidebar";
+import WelcomeBanner from "@/components/layout/welcome-banner";
 import { getCurrentUser, type UserProfile } from "@/lib/auth";
 
 type StudentDocument = {
@@ -40,17 +41,17 @@ type Student = {
 const STORAGE_KEY = "demo-student-documents";
 
 export default function StudentList() {
+  const router = useRouter();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All Documents");
+  const [filter, setFilter] =
+    useState("All Documents");
 
   const [currentUser, setCurrentUser] =
     useState<UserProfile | null>(null);
-
-  const [currentDateTime, setCurrentDateTime] =
-    useState(new Date());
 
   /*
    * Load logged-in user
@@ -64,10 +65,10 @@ export default function StudentList() {
   }, []);
 
   /*
-   * SAME SIDEBAR BEHAVIOR AS DOCUMENTS
+   * Responsive sidebar
    *
-   * Desktop  = sidebar open
-   * Mobile   = sidebar closed
+   * Desktop = sidebar open
+   * Mobile = sidebar closed
    */
   useEffect(() => {
     const updateSidebar = () => {
@@ -76,32 +77,26 @@ export default function StudentList() {
 
     updateSidebar();
 
-    window.addEventListener("resize", updateSidebar);
+    window.addEventListener(
+      "resize",
+      updateSidebar
+    );
 
     return () => {
-      window.removeEventListener("resize", updateSidebar);
+      window.removeEventListener(
+        "resize",
+        updateSidebar
+      );
     };
   }, []);
 
   /*
-   * Live date and time
-   */
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 1000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, []);
-
-  /*
-   * Load students
+   * Load students from localStorage
    */
   const loadStudents = () => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored =
+        localStorage.getItem(STORAGE_KEY);
 
       if (!stored) {
         setStudents([]);
@@ -111,22 +106,30 @@ export default function StudentList() {
       const documents: StudentDocument[] =
         JSON.parse(stored);
 
-      const studentMap = new Map<string, Student>();
+      const studentMap = new Map<
+        string,
+        Student
+      >();
 
       documents.forEach((document) => {
-        const studentId = document.studentId?.trim();
+        const studentId =
+          document.studentId?.trim();
 
         if (!studentId) {
           return;
         }
 
+        const normalizedStudentId =
+          studentId.toUpperCase();
+
         const existingStudent =
-          studentMap.get(studentId);
+          studentMap.get(normalizedStudentId);
 
         if (!existingStudent) {
-          studentMap.set(studentId, {
+          studentMap.set(normalizedStudentId, {
             id: studentId,
-            studentName: document.studentName,
+            studentName:
+              document.studentName,
             studentId,
             course:
               document.course?.trim() || "—",
@@ -213,11 +216,18 @@ export default function StudentList() {
       const documents: StudentDocument[] =
         JSON.parse(stored);
 
+      const normalizedStudentId =
+        student.studentId
+          .trim()
+          .toUpperCase();
+
       const updatedDocuments =
         documents.filter(
           (document) =>
-            document.studentId.trim() !==
-            student.studentId
+            document.studentId
+              ?.trim()
+              .toUpperCase() !==
+            normalizedStudentId
         );
 
       localStorage.setItem(
@@ -235,10 +245,10 @@ export default function StudentList() {
   };
 
   /*
-   * Search
+   * Search students
    */
-  const filteredStudents =
-    students.filter((student) => {
+  const filteredStudents = students.filter(
+    (student) => {
       const searchValue =
         search.trim().toLowerCase();
 
@@ -260,7 +270,8 @@ export default function StudentList() {
           .toLowerCase()
           .includes(searchValue)
       );
-    });
+    }
+  );
 
   /*
    * Current user
@@ -273,94 +284,63 @@ export default function StudentList() {
     currentUser?.role?.trim() ||
     "Administrator";
 
-  /*
-   * Date / time
-   */
-  const formattedDate =
-    currentDateTime.toLocaleDateString(
-      "en-US",
-      {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }
-    );
-
-  const formattedDay =
-    currentDateTime
-      .toLocaleDateString("en-US", {
-        weekday: "long",
-      })
-      .toUpperCase();
-
-  const formattedTime =
-    currentDateTime.toLocaleTimeString(
-      "en-US",
-      {
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-      }
-    );
-
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[#f1f3fc] text-slate-800">
-
       {/* SIDEBAR */}
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* 
-        IMPORTANT:
-        This is the SAME layout behavior as Documents.
-        Sidebar open  -> 275px margin
-        Sidebar closed -> full width
-      */}
+      {/*
+       * MAIN CONTENT
+       *
+       * Sidebar open:
+       *   275px reserved for sidebar
+       *
+       * Sidebar closed:
+       *   Full screen width
+       *
+       * The transition makes the content
+       * smoothly move instead of jumping.
+       */}
       <main
-        className={`min-h-screen w-full transition-[margin] duration-300 ${
+        className={`min-h-screen w-full transition-[margin,width] duration-300 ease-in-out ${
           sidebarOpen
             ? "lg:ml-[275px] lg:w-[calc(100%-275px)]"
             : "ml-0 w-full"
         }`}
       >
-
         {/* HEADER */}
-        <header className="sticky top-0 z-30 flex min-h-[58px] w-full items-center justify-between border-b border-slate-200 bg-white px-3 shadow-sm sm:px-5 lg:px-6">
-
+        <header className="sticky top-0 z-30 flex min-h-[58px] w-full items-center justify-between border-b border-slate-200 bg-white px-3 shadow-sm transition-all duration-300 sm:px-5 lg:px-6">
           {/* LEFT SIDE */}
           <div className="flex items-center gap-2 sm:gap-3">
-
-            {/* 
-              DO NOT use lg:hidden here.
-              This button MUST remain visible when
-              the sidebar is closed.
-            */}
+            {/* HAMBURGER - ALWAYS VISIBLE */}
             <button
               type="button"
               aria-label="Toggle sidebar"
               onClick={() =>
-                setSidebarOpen((open) => !open)
+                setSidebarOpen(
+                  (open) => !open
+                )
               }
-              className="rounded-md p-2 text-slate-700 transition-colors hover:bg-slate-100"
+              className="rounded-md p-2 text-slate-700 transition-all duration-200 hover:bg-slate-100 active:scale-95"
             >
               <Menu size={24} />
             </button>
 
             <h2 className="text-base font-semibold text-slate-800 sm:text-lg">
-              MY PROFILE
+              STUDENT LIST
             </h2>
           </div>
 
           {/* RIGHT SIDE */}
           <div className="flex items-center gap-3 sm:gap-4">
-
             {/* NOTIFICATION */}
             <button
               type="button"
               aria-label="Notifications"
-              className="relative rounded-full border border-slate-200 p-2 text-slate-700 transition-colors hover:bg-slate-100"
+              className="relative rounded-full border border-slate-200 p-2 text-slate-700 transition-all duration-200 hover:bg-slate-100 active:scale-95"
             >
               <Bell size={18} />
 
@@ -386,51 +366,15 @@ export default function StudentList() {
           </div>
         </header>
 
-        {/* PAGE CONTENT */}
-        <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:p-5 lg:p-6">
-
+        {/* CENTERED PAGE CONTENT */}
+        <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 transition-all duration-300 sm:p-5 lg:p-6">
           {/* WELCOME BANNER */}
-          <section className="relative flex min-h-[105px] items-center overflow-hidden rounded-2xl bg-gradient-to-r from-[#3211c7] via-[#2915c8] to-[#07185f] px-6 text-white shadow-sm">
+          <WelcomeBanner />
 
-            <div>
-              <h1 className="text-lg font-semibold sm:text-xl">
-                Welcome Back, {displayName}
-              </h1>
-
-              <p className="text-xs text-white/80">
-                Here’s What's happening in your systems today
-              </p>
-            </div>
-
-            <span className="absolute left-[48%] text-3xl">
-              👋
-            </span>
-
-            <div className="ml-auto hidden items-center gap-4 sm:flex">
-              <CalendarDays size={48} />
-
-              <div className="text-center">
-                <p className="text-sm font-semibold">
-                  {formattedDate}
-                </p>
-
-                <p className="text-xs">
-                  {formattedDay}
-                </p>
-
-                <p className="text-[10px]">
-                  {formattedTime}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* STUDENT LIST */}
-          <section className="rounded-2xl bg-white shadow-sm">
-
+          {/* STUDENT LIST CARD */}
+          <section className="overflow-hidden rounded-2xl bg-white shadow-sm transition-shadow duration-300">
             {/* CARD HEADER */}
             <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
-
               <div className="flex items-start gap-2">
                 <UserRound
                   size={22}
@@ -443,7 +387,8 @@ export default function StudentList() {
                   </h2>
 
                   <p className="text-[10px] text-slate-500">
-                    View and manage registered students and their documents.
+                    View and manage registered
+                    students and their documents.
                   </p>
                 </div>
               </div>
@@ -458,7 +403,6 @@ export default function StudentList() {
 
             {/* SEARCH + FILTER */}
             <div className="flex flex-col gap-3 px-5 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
-
               {/* SEARCH */}
               <div className="relative w-full md:max-w-md">
                 <Search
@@ -470,21 +414,25 @@ export default function StudentList() {
                   type="text"
                   value={search}
                   onChange={(event) =>
-                    setSearch(event.target.value)
+                    setSearch(
+                      event.target.value
+                    )
                   }
                   placeholder="Search Student ID or Student Name"
-                  className="h-10 w-full rounded-md border border-slate-300 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="h-10 w-full rounded-md border border-slate-300 bg-white pl-10 pr-4 text-sm outline-none transition-all duration-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
               {/* FILTER */}
-              <div className="relative">
+              <div className="relative w-full md:w-auto">
                 <select
                   value={filter}
                   onChange={(event) =>
-                    setFilter(event.target.value)
+                    setFilter(
+                      event.target.value
+                    )
                   }
-                  className="h-10 min-w-[190px] appearance-none rounded-md border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="h-10 w-full min-w-[190px] appearance-none rounded-md border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700 outline-none transition-all duration-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="All Documents">
                     All Documents
@@ -513,10 +461,8 @@ export default function StudentList() {
             {/* TABLE */}
             <div className="overflow-x-auto px-5 sm:px-6">
               <table className="w-full min-w-[750px]">
-
                 <thead>
                   <tr className="border-b border-slate-200 text-left">
-
                     <th className="px-3 py-3 text-xs font-semibold text-slate-500">
                       Student Name
                     </th>
@@ -536,67 +482,74 @@ export default function StudentList() {
                     <th className="px-3 py-3 text-xs font-semibold text-slate-500">
                       Actions
                     </th>
-
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map((student) => (
-                      <tr
-                        key={student.studentId}
-                        className="border-b border-slate-100 transition-colors hover:bg-slate-50"
-                      >
+                  {filteredStudents.length >
+                  0 ? (
+                    filteredStudents.map(
+                      (student) => (
+                        <tr
+                          key={student.studentId}
+                          className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50"
+                        >
+                          <td className="px-3 py-4 text-sm font-medium text-slate-800">
+                            {student.studentName}
+                          </td>
 
-                        <td className="px-3 py-4 text-sm font-medium text-slate-800">
-                          {student.studentName}
-                        </td>
+                          <td className="px-3 py-4 text-sm text-slate-600">
+                            {student.studentId}
+                          </td>
 
-                        <td className="px-3 py-4 text-sm text-slate-600">
-                          {student.studentId}
-                        </td>
+                          <td className="px-3 py-4 text-sm text-slate-600">
+                            {student.course}
+                          </td>
 
-                        <td className="px-3 py-4 text-sm text-slate-600">
-                          {student.course}
-                        </td>
+                          <td className="px-3 py-4 text-sm text-slate-600">
+                            {student.email}
+                          </td>
 
-                        <td className="px-3 py-4 text-sm text-slate-600">
-                          {student.email}
-                        </td>
+                          <td className="px-3 py-4">
+                            <div className="flex items-center gap-1">
+                              {/* VIEW */}
+                              <button
+                                type="button"
+                                title="View Student"
+                                aria-label={`View ${student.studentName}`}
+                                onClick={() =>
+                                  router.push(
+                                    `/student-profile-information?id=${encodeURIComponent(
+                                      student.studentId
+                                    )}`
+                                  )
+                                }
+                                className="rounded-md p-2 text-blue-600 transition-all duration-200 hover:bg-blue-50 active:scale-95"
+                              >
+                                <Eye size={18} />
+                              </button>
 
-                        <td className="px-3 py-4">
-                          <div className="flex items-center gap-1">
-
-                            {/* VIEW */}
-                            <button
-                              type="button"
-                              title="View Student"
-                              aria-label={`View ${student.studentName}`}
-                              className="rounded-md p-2 text-blue-600 transition-colors hover:bg-blue-50"
-                            >
-                              <Eye size={18} />
-                            </button>
-
-                            {/* DELETE */}
-                            <button
-                              type="button"
-                              title="Delete Student"
-                              aria-label={`Delete ${student.studentName}`}
-                              onClick={() =>
-                                handleDeleteStudent(
-                                  student
-                                )
-                              }
-                              className="rounded-md p-2 text-red-500 transition-colors hover:bg-red-50"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-
-                          </div>
-                        </td>
-
-                      </tr>
-                    ))
+                              {/* DELETE */}
+                              <button
+                                type="button"
+                                title="Delete Student"
+                                aria-label={`Delete ${student.studentName}`}
+                                onClick={() =>
+                                  handleDeleteStudent(
+                                    student
+                                  )
+                                }
+                                className="rounded-md p-2 text-red-500 transition-all duration-200 hover:bg-red-50 active:scale-95"
+                              >
+                                <Trash2
+                                  size={18}
+                                />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    )
                   ) : (
                     <tr>
                       <td
@@ -610,31 +563,29 @@ export default function StudentList() {
                     </tr>
                   )}
                 </tbody>
-
               </table>
             </div>
 
             {/* FOOTER */}
             <div className="mt-4 flex items-center justify-between border-t border-slate-100 px-5 py-4 sm:px-6">
-
               <p className="text-xs text-slate-500">
-                Showing {filteredStudents.length} of{" "}
+                Showing{" "}
+                {filteredStudents.length} of{" "}
                 {students.length} students
               </p>
 
               <div className="flex gap-1">
-
                 <button
                   type="button"
                   disabled
-                  className="rounded border border-slate-200 px-3 py-1.5 text-xs text-slate-400"
+                  className="rounded border border-slate-200 px-3 py-1.5 text-xs text-slate-400 transition-colors duration-200"
                 >
                   Previous
                 </button>
 
                 <button
                   type="button"
-                  className="rounded border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs text-white"
+                  className="rounded border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs text-white transition-all duration-200 hover:bg-blue-700 active:scale-95"
                 >
                   1
                 </button>
@@ -642,14 +593,12 @@ export default function StudentList() {
                 <button
                   type="button"
                   disabled
-                  className="rounded border border-slate-200 px-3 py-1.5 text-xs text-slate-400"
+                  className="rounded border border-slate-200 px-3 py-1.5 text-xs text-slate-400 transition-colors duration-200"
                 >
                   Next
                 </button>
-
               </div>
             </div>
-
           </section>
         </div>
       </main>
