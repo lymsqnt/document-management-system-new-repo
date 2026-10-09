@@ -27,6 +27,7 @@ import Sidebar from "@/components/layout/sidebar";
 import Topbar from "@/components/layout/topbar";
 
 import { DOCUMENT_TYPES } from "@/lib/validations/students-documents";
+import { logActivity } from "@/lib/validations/audit-logs";
 
 type StudentDocument = {
   id: string;
@@ -358,6 +359,17 @@ export default function StudentProfileInformation() {
         );
 
         saveDocuments(updatedDocuments);
+
+        /*
+         * Audit log: document replaced / updated
+         */
+        logActivity({
+          action: "Document Updated",
+          resourceType: "Document",
+          resource: `${documentType} - ${student.studentName}`,
+          details: `Replaced ${existingDocument.fileName} with ${file.name} (${student.studentId}).`,
+        });
+
         return;
       }
 
@@ -389,6 +401,16 @@ export default function StudentProfileInformation() {
       ];
 
       saveDocuments(updatedDocuments);
+
+      /*
+       * Audit log: new document uploaded
+       */
+      logActivity({
+        action: "Document Uploaded",
+        resourceType: "Document",
+        resource: `${documentType} - ${student.studentName}`,
+        details: `Uploaded ${file.name} (${student.studentId}).`,
+      });
     };
 
     reader.readAsDataURL(file);

@@ -8,6 +8,7 @@ export type AuditAction =
   | "Password Changed"
   | "Password Reset"
   | "Document Uploaded"
+  | "Document Updated"
   | "Student Deleted";
 
 export type AuditResourceType = "Account" | "Profile" | "Security" | "Document" | "Student";
@@ -27,7 +28,7 @@ export type AuditLog = {
 const AUDIT_LOGS_KEY = "demoAuditLogs";
 const ACTIONS: AuditAction[] = [
   "Sign In", "Sign Out", "Account Created", "Profile Updated", "Password Changed",
-  "Password Reset", "Document Uploaded", "Student Deleted",
+  "Password Reset", "Document Uploaded", "Document Updated", "Student Deleted",
 ];
 const RESOURCE_TYPES: AuditResourceType[] = ["Account", "Profile", "Security", "Document", "Student"];
 
