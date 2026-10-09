@@ -27,7 +27,6 @@ export const DOCUMENT_TYPES = [
   "Report Card",
   "Birth Certificate",
   "Good Moral Certificate",
-  "Other",
 ];
 
 export function validateStudentId(studentId: string): string | null {
