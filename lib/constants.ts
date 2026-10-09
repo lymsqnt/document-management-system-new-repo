@@ -5,7 +5,6 @@
      "Finance Office",
      "Guidance Office",
      "Information Technology",
-     "Other",
    ];
 
    export const GENDERS = ["Male", "Female"];

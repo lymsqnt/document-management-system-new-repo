@@ -94,18 +94,20 @@ export default function AccountRecovery() {
         className="pointer-events-none absolute left-1/2 top-5 z-30 h-20 w-20 -translate-x-1/2 object-contain drop-shadow-xl sm:top-7 sm:h-24 sm:w-24 md:h-28 md:w-28 lg:left-[7%] lg:top-1/2 lg:h-60 lg:w-60 lg:-translate-x-0 lg:-translate-y-1/2 xl:h-72 xl:w-72"
       />
 
-      <div className="ml-50 relative z-20 flex min-h-screen flex-col items-center justify-center px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        <div className="mb-4 w-full pt-24 text-center sm:pt-28 md:pt-32 lg:pt-0">
-          <h1 className="text-lg font-bold leading-tight tracking-tight text-black sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl">
+      {/* On phones/tablets the content is centered full-width.
+          From lg up, it sits in the right 75% beside the logo panel. */}
+      <div className="relative z-20 flex min-h-screen w-full flex-col items-center justify-center px-4 py-6 sm:px-6 sm:py-8 lg:ml-[25%] lg:w-[75%] lg:px-8 lg:py-10">
+        <header className="mb-4 w-full pt-24 text-center sm:pt-28 md:pt-32 lg:pt-0">
+          <h1 className="text-lg font-bold leading-tight tracking-tight text-black sm:text-2xl md:text-3xl xl:text-4xl">
             QUEZONIAN EDUCATIONAL COLLEGE, INC
           </h1>
 
           <p className="mt-1 text-[11px] font-medium text-black sm:text-xs md:text-sm">
-            Document Management Systems(DMS)
+            Document Management Systems (DMS)
           </p>
-        </div>
+        </header>
 
-        <fieldset className="card card-sm w-full max-w-md overflow-hidden bg-white text-black shadow-2xl sm:max-w-md md:max-w-lg lg:max-w-2xl">
+        <section className="card card-sm w-full max-w-md overflow-hidden bg-white text-black shadow-2xl sm:max-w-md md:max-w-lg lg:max-w-2xl">
           <div className="h-2 bg-gradient-to-r from-blue-900 via-blue-700 to-blue-600 sm:h-3" />
 
           <div className="card-body px-4 py-6 sm:px-7 sm:py-7 md:px-9 lg:px-14 lg:py-9">
@@ -133,12 +135,12 @@ export default function AccountRecovery() {
                   )}
                 </div>
 
-                <h2 className="text-xl font-bold tracking-tight text-black sm:text-2xl md:text-3xl lg:text-4xl">
+                <h2 className="min-w-0 break-words text-xl font-bold tracking-tight text-black sm:text-2xl md:text-3xl lg:text-4xl">
                   {title}
                 </h2>
               </div>
 
-              <p className="mx-auto mt-2 max-w-md text-[11px] leading-tight text-gray-700 sm:text-xs md:text-sm">
+              <p className="mx-auto mt-2 max-w-md text-[11px] leading-snug text-gray-700 sm:text-xs md:text-sm">
                 {description}
               </p>
             </div>
@@ -260,7 +262,7 @@ export default function AccountRecovery() {
               )}
             </div>
           </div>
-        </fieldset>
+        </section>
       </div>
     </main>
   );

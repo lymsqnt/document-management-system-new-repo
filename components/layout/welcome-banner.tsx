@@ -50,6 +50,32 @@ export default function WelcomeBanner() {
 
   return (
     <section className="relative min-h-[105px] overflow-hidden rounded-2xl bg-gradient-to-r from-[#0F2A68] via-[#1646A3] to-[#0B1F4F] px-4 py-4 text-white shadow-sm sm:px-6">
+      {/* Waving hand animation (self-contained, no globals.css needed) */}
+      <style>{`
+        @keyframes welcome-wave {
+          0%   { transform: rotate(0deg); }
+          10%  { transform: rotate(14deg); }
+          20%  { transform: rotate(-8deg); }
+          30%  { transform: rotate(14deg); }
+          40%  { transform: rotate(-4deg); }
+          50%  { transform: rotate(10deg); }
+          60%  { transform: rotate(0deg); }
+          100% { transform: rotate(0deg); }
+        }
+
+        .welcome-wave {
+          display: inline-block;
+          transform-origin: 70% 70%;
+          animation: welcome-wave 2s ease-in-out 0.4s 2;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .welcome-wave {
+            animation: none;
+          }
+        }
+      `}</style>
+
       {/* SCHOOL IMAGE */}
       <div
         className="absolute inset-y-0 right-0 w-[55%] bg-cover bg-center opacity-20"
@@ -62,11 +88,17 @@ export default function WelcomeBanner() {
       <div className="absolute inset-0 bg-gradient-to-r from-[#0F2A68] via-[#1646A3]/90 to-transparent" />
 
       {/* CONTENT */}
-      <div className="relative z-10 flex min-h-[73px] h-full items-center">
+      <div className="relative z-10 flex min-h-[73px] h-full items-center gap-3">
         {/* WELCOME TEXT */}
-        <div>
-          <h1 className="text-lg font-semibold sm:text-xl">
+        <div className="min-w-0">
+          <h1 className="break-words text-lg font-semibold sm:text-xl">
             Welcome Back, {displayName}
+            <span
+              aria-hidden="true"
+              className="welcome-wave ml-2 text-xl sm:text-2xl"
+            >
+              👋
+            </span>
           </h1>
 
           <p className="text-xs text-white/80">
@@ -74,13 +106,8 @@ export default function WelcomeBanner() {
           </p>
         </div>
 
-        {/* WAVE */}
-        <span className="absolute left-[18%] hidden text-3xl sm:block">
-          👋
-        </span>
-
         {/* DATE / TIME */}
-        <div className="ml-auto flex items-center gap-3 sm:gap-4">
+        <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-4">
           <CalendarDays
             size={43}
             strokeWidth={1.8}
