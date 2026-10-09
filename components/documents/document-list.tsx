@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 
+import { logActivity } from "@/lib/validations/audit-logs";
 import Sidebar from "@/components/layout/sidebar";
 import Topbar from "@/components/layout/topbar";
 import WelcomeBanner from "@/components/layout/welcome-banner";
@@ -358,7 +359,13 @@ export default function DocumentList() {
         STORAGE_KEY,
         JSON.stringify(updatedDocuments)
       );
-
+      
+            logActivity({
+        action: "Document Uploaded",
+        resourceType: "Document",
+        resource: `${documentType} - ${newDocument.studentName}`,
+        details: `Added student ${newDocument.studentName} (${newDocument.studentId}) with ${documentType}.`,
+      });
       setStudentId("");
       setStudentName("");
       setCourse("");

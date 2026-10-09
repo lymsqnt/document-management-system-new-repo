@@ -18,6 +18,7 @@ const actionStyles: Record<AuditAction, string> = {
   "Password Changed": "bg-orange-50 text-orange-700",
   "Password Reset": "bg-rose-50 text-rose-700",
   "Document Uploaded": "bg-violet-50 text-violet-700",
+  "Student Deleted": "bg-red-50 text-red-700",
 };
 
 function initials(name: string) {

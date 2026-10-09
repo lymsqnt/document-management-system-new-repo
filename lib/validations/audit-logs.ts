@@ -1,3 +1,5 @@
+import { getCurrentUser } from "@/lib/auth";
+
 export type AuditAction =
   | "Sign In"
   | "Sign Out"
@@ -5,9 +7,10 @@ export type AuditAction =
   | "Profile Updated"
   | "Password Changed"
   | "Password Reset"
-  | "Document Uploaded";
+  | "Document Uploaded"
+  | "Student Deleted";
 
-export type AuditResourceType = "Account" | "Profile" | "Security" | "Document";
+export type AuditResourceType = "Account" | "Profile" | "Security" | "Document" | "Student";
 
 export type AuditLog = {
   id: string;
@@ -24,9 +27,9 @@ export type AuditLog = {
 const AUDIT_LOGS_KEY = "demoAuditLogs";
 const ACTIONS: AuditAction[] = [
   "Sign In", "Sign Out", "Account Created", "Profile Updated", "Password Changed",
-  "Password Reset", "Document Uploaded",
+  "Password Reset", "Document Uploaded", "Student Deleted",
 ];
-const RESOURCE_TYPES: AuditResourceType[] = ["Account", "Profile", "Security", "Document"];
+const RESOURCE_TYPES: AuditResourceType[] = ["Account", "Profile", "Security", "Document", "Student"];
 
 export function getAuditLogs(): AuditLog[] {
   if (typeof window === "undefined") return [];
@@ -71,6 +74,19 @@ export function recordAuditLog(
     const logs = getAuditLogs();
     localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify([entry, ...logs].slice(0, 1000)));
   } catch {
-    // Audit logging must not prevent the underlying authentication action.
+    // Audit logging must not prevent the underlying action.
   }
+}
+
+/** Para sa mga action ng naka-login na user (add/delete student, atbp.) */
+export function logActivity(
+  event: Pick<AuditLog, "action" | "resourceType" | "resource" | "details">
+): void {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  recordAuditLog(
+    { fullName: user.fullName, email: user.email, role: user.role },
+    event
+  );
 }

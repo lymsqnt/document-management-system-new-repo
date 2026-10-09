@@ -13,6 +13,7 @@ import {
 import Sidebar from "@/components/layout/sidebar";
 import Topbar from "@/components/layout/topbar";
 import WelcomeBanner from "@/components/layout/welcome-banner";
+import { logActivity } from "@/lib/validations/audit-logs";
 
 type StudentDocument = {
   id: string;
@@ -236,6 +237,16 @@ export default function StudentList() {
           updatedDocuments
         )
       );
+
+      /*
+       * Audit log: student deleted
+       */
+      logActivity({
+        action: "Student Deleted",
+        resourceType: "Student",
+        resource: `${student.studentName} (${student.studentId})`,
+        details: `Deleted student record and ${documents.length - updatedDocuments.length} document(s).`,
+      });
 
       loadStudents();
     } catch (error) {
