@@ -8,8 +8,6 @@ import {
   type FormEvent,
 } from "react";
 import {
-  Menu,
-  Bell,
   UserRound,
   Camera,
   GraduationCap,
@@ -28,6 +26,7 @@ import {
 } from "lucide-react";
 
 import Sidebar from "@/components/layout/sidebar";
+import Topbar from "@/components/layout/topbar";
 import ProfileInput from "@/components/ui/profileinput";
 import ProfileSelect from "@/components/ui/profileselect";
 import { ROLES, DEPARTMENTS, GENDERS } from "@/lib/constants";
@@ -55,7 +54,9 @@ const initialProfile: ProfileData = {
 
 export default function Profile() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"account" | "security">("account");
+  const [activeTab, setActiveTab] = useState<"account" | "security">(
+    "account"
+  );
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -117,7 +118,10 @@ export default function Profile() {
     });
 
     setPassword(
-      getAccountPassword(currentUser.username ?? "", currentUser.email ?? "")
+      getAccountPassword(
+        currentUser.username ?? "",
+        currentUser.email ?? ""
+      )
     );
 
     setSaveError("");
@@ -224,7 +228,9 @@ export default function Profile() {
     setPasswordSaved(true);
   };
 
-  function handleProfileImageChange(event: ChangeEvent<HTMLInputElement>) {
+  function handleProfileImageChange(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
     const file = event.target.files?.[0];
 
     if (!file) return;
@@ -269,62 +275,24 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[#f1f3fc] text-slate-800">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       <main
-        className={`min-h-screen w-full transition-[margin] duration-300 ${sidebarOpen
+        className={`min-h-screen w-full transition-[margin] duration-300 ${
+          sidebarOpen
             ? "lg:ml-[275px] lg:w-[calc(100%-275px)]"
             : "ml-0 w-full"
-          }`}
+        }`}
       >
-        <header className="sticky top-0 z-30 flex min-h-[58px] w-full items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 shadow-sm sm:px-5 lg:px-6">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-              onClick={() => setSidebarOpen((open) => !open)}
-              className="shrink-0 rounded-md p-2 text-slate-800 transition hover:bg-slate-100"
-            >
-              <Menu size={22} />
-            </button>
-
-            <h2 className="truncate text-sm font-semibold uppercase tracking-wide sm:text-base">
-              My Profile
-            </h2>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="relative rounded-full border border-slate-200 p-2 hover:bg-slate-50"
-            >
-              <Bell size={17} />
-              <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-blue-600" />
-            </button>
-
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-blue-500 bg-blue-100 text-sm font-semibold text-blue-800 sm:h-10 sm:w-10">
-                {profile.profileImage ? (
-                  <img
-                    src={profile.profileImage}
-                    alt={profile.fullName || "Profile photo"}
-                    className="h-full w-full rounded-full object-cover"
-                  />
-                ) : (
-                  initials || <UserRound size={18} />
-                )}
-              </div>
-
-              <div className="hidden min-w-0 text-right sm:block">
-                <p className="max-w-[150px] truncate text-xs font-medium">
-                  {profile.fullName}
-                </p>
-                <p className="text-[11px] text-slate-500">{profile.role}</p>
-              </div>
-            </div>
-          </div>
-        </header>
+        <Topbar
+          title="My Profile"
+          onToggleSidebar={() =>
+            setSidebarOpen((current) => !current)
+          }
+        />
 
         <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:space-y-5 sm:p-5 lg:p-6">
           <section className="flex min-w-0 items-center gap-3 rounded-xl bg-gradient-to-r from-[#e9e9f7] via-white to-white px-3 py-4 shadow-sm sm:gap-4 sm:px-6">
@@ -341,6 +309,7 @@ export default function Profile() {
               <h1 className="text-base font-semibold sm:text-lg">
                 My Profile
               </h1>
+
               <p className="mt-1 text-xs text-slate-500 sm:text-sm">
                 View and manage your account information
               </p>
@@ -351,6 +320,7 @@ export default function Profile() {
             <section className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl bg-white shadow-sm">
               <div className="relative h-28 shrink-0 overflow-hidden bg-gradient-to-br from-[#001b68] via-[#0643be] to-[#07165d] sm:h-[125px]">
                 <div className="absolute -right-8 -top-16 h-36 w-36 rounded-full border-[28px] border-blue-500/30" />
+
                 <div className="absolute -left-8 top-20 h-20 w-60 -rotate-12 rounded-full border-t-4 border-white/80" />
               </div>
 
@@ -398,6 +368,7 @@ export default function Profile() {
                     className="shrink-0 text-slate-800"
                     fill="currentColor"
                   />
+
                   <p className="text-xs font-semibold leading-4 text-slate-800">
                     Quezonian Educational
                     <br />
@@ -415,10 +386,11 @@ export default function Profile() {
                     setActiveTab("account");
                     setSaveError("");
                   }}
-                  className={`min-w-0 flex-1 rounded-md px-2 py-2 text-[11px] transition sm:text-xs ${activeTab === "account"
+                  className={`min-w-0 flex-1 rounded-md px-2 py-2 text-[11px] transition sm:text-xs ${
+                    activeTab === "account"
                       ? "bg-white/80 font-medium text-blue-800 underline underline-offset-2"
                       : "text-slate-800 hover:bg-white/40"
-                    }`}
+                  }`}
                 >
                   Account Information
                 </button>
@@ -429,10 +401,11 @@ export default function Profile() {
                     setActiveTab("security");
                     setSaveError("");
                   }}
-                  className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] transition sm:text-xs ${activeTab === "security"
+                  className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] transition sm:text-xs ${
+                    activeTab === "security"
                       ? "bg-white/80 font-medium text-blue-800 underline underline-offset-2"
                       : "text-slate-800 hover:bg-white/40"
-                    }`}
+                  }`}
                 >
                   <LockKeyhole size={13} />
                   Security
@@ -449,7 +422,9 @@ export default function Profile() {
                     value={profile.fullName}
                     icon={UserRound}
                     editing={editing}
-                    onChange={(value) => updateField("fullName", value)}
+                    onChange={(value) =>
+                      updateField("fullName", value)
+                    }
                   />
 
                   <ProfileInput
@@ -457,7 +432,9 @@ export default function Profile() {
                     value={profile.address}
                     icon={MapPin}
                     editing={editing}
-                    onChange={(value) => updateField("address", value)}
+                    onChange={(value) =>
+                      updateField("address", value)
+                    }
                   />
 
                   <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
@@ -466,7 +443,9 @@ export default function Profile() {
                       value={profile.username}
                       icon={UserRound}
                       editing={editing}
-                      onChange={(value) => updateField("username", value)}
+                      onChange={(value) =>
+                        updateField("username", value)
+                      }
                     />
 
                     <ProfileInput
@@ -475,7 +454,9 @@ export default function Profile() {
                       icon={Mail}
                       type="email"
                       editing={editing}
-                      onChange={(value) => updateField("email", value)}
+                      onChange={(value) =>
+                        updateField("email", value)
+                      }
                     />
 
                     <ProfileSelect
@@ -484,7 +465,9 @@ export default function Profile() {
                       icon={BriefcaseBusiness}
                       editing={editing}
                       options={ROLES}
-                      onChange={(value) => updateField("role", value)}
+                      onChange={(value) =>
+                        updateField("role", value)
+                      }
                     />
 
                     <ProfileSelect
@@ -493,7 +476,9 @@ export default function Profile() {
                       icon={Building2}
                       editing={editing}
                       options={DEPARTMENTS}
-                      onChange={(value) => updateField("department", value)}
+                      onChange={(value) =>
+                        updateField("department", value)
+                      }
                     />
 
                     <ProfileInput
@@ -502,7 +487,9 @@ export default function Profile() {
                       icon={CalendarDays}
                       type="date"
                       editing={editing}
-                      onChange={(value) => updateField("birthday", value)}
+                      onChange={(value) =>
+                        updateField("birthday", value)
+                      }
                     />
                   </div>
 
@@ -523,9 +510,12 @@ export default function Profile() {
                             value={gender}
                             checked={profile.gender === gender}
                             disabled={!editing}
-                            onChange={() => updateField("gender", gender)}
+                            onChange={() =>
+                              updateField("gender", gender)
+                            }
                             className="radio radio-primary radio-xs"
                           />
+
                           {gender}
                         </label>
                       ))}
@@ -592,6 +582,7 @@ export default function Profile() {
                     <h3 className="text-sm font-semibold">
                       Security Settings
                     </h3>
+
                     <p className="mt-1 text-xs text-slate-500">
                       Manage your password and account security.
                     </p>
@@ -622,9 +613,13 @@ export default function Profile() {
                       <button
                         type="button"
                         aria-label={
-                          showPassword ? "Hide password" : "Show password"
+                          showPassword
+                            ? "Hide password"
+                            : "Show password"
                         }
-                        onClick={() => setShowPassword((show) => !show)}
+                        onClick={() =>
+                          setShowPassword((show) => !show)
+                        }
                         className="shrink-0 text-slate-600"
                       >
                         {showPassword ? (
@@ -641,12 +636,15 @@ export default function Profile() {
                       size={24}
                       className="shrink-0 text-blue-700"
                     />
+
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-slate-800">
                         Account protection
                       </p>
+
                       <p className="mt-1 break-words text-[11px] text-slate-600">
-                        Keep your password private and use a strong password.
+                        Keep your password private and use a strong
+                        password.
                       </p>
                     </div>
                   </div>

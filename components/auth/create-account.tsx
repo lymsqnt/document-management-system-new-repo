@@ -1,27 +1,12 @@
-
 "use client";
 
 import { ROLES, DEPARTMENTS } from "@/lib/constants";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  UserRoundPlus,
-  UserRound,
-  AtSign,
-  Mail,
-  BriefcaseBusiness,
-  LockKeyhole,
-  Building2,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { UserRoundPlus, UserRound, AtSign,Mail, BriefcaseBusiness, LockKeyhole, Building2, Eye, EyeOff, } from "lucide-react";
 
-import {
-  validateCreateAccount,
-  type CreateAccountData,
-  type CreateAccountErrors,
-} from "@/lib/validations/create-account";
+import { validateCreateAccount, type CreateAccountData, type CreateAccountErrors,} from "@/lib/validations/create-account";
 
 type DemoAccount = {
   fullName: string;
@@ -43,13 +28,9 @@ const initialForm: CreateAccountData = {
   acceptedTerms: false,
 };
 
-const inputClass =
-  "h-10 w-full rounded-md border border-gray-400 bg-white py-2 pl-10 pr-3 text-sm text-black outline-none transition placeholder:text-gray-400 focus:border-blue-700 focus:ring-1 focus:ring-blue-700";
-
+const inputClass = "h-10 w-full rounded-md border border-gray-400 bg-white py-2 pl-10 pr-3 text-sm text-black outline-none transition placeholder:text-gray-400 focus:border-blue-700 focus:ring-1 focus:ring-blue-700";
 const labelClass = "mb-1 block text-xs font-medium text-black sm:text-sm";
-
-const iconClass =
-  "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500";
+const iconClass = "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500";
 
 export default function CreateAccount() {
   const router = useRouter();
@@ -148,7 +129,6 @@ export default function CreateAccount() {
         alt=""
         className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden h-full w-auto object-contain object-left lg:block"
       />
-
       <img
         src="/Qeci_Logo.png"
         alt="Quezonian Educational College Inc. Logo"
@@ -160,7 +140,6 @@ export default function CreateAccount() {
           <h1 className="text-lg font-bold leading-tight tracking-tight text-black sm:text-2xl md:text-3xl xl:text-4xl">
             QUEZONIAN EDUCATIONAL COLLEGE, INC
           </h1>
-
           <p className="mt-1 text-[11px] font-medium text-black sm:text-xs md:text-sm">
             Document Management Systems (DMS)
           </p>
@@ -198,16 +177,7 @@ export default function CreateAccount() {
                   </label>
                   <div className="relative">
                     <UserRound size={16} className={iconClass} />
-                    <input
-                      id="fullName"
-                      type="text"
-                      autoComplete="name"
-                      placeholder="Enter your full name"
-                      value={form.fullName}
-                      onChange={(e) => updateField("fullName", e.target.value)}
-                      className={inputClass}
-                      required
-                    />
+                    <input id="fullName" type="text" autoComplete="name" placeholder="Enter your full name" value={form.fullName} onChange={(e) => updateField("fullName", e.target.value)} className={inputClass} required />
                   </div>
                   {errors.fullName && (
                     <p className="mt-1 text-xs text-red-600">{errors.fullName}</p>
@@ -220,15 +190,7 @@ export default function CreateAccount() {
                   </label>
                   <div className="relative">
                     <AtSign size={16} className={iconClass} />
-                    <input
-                      id="username"
-                      type="text"
-                      autoComplete="username"
-                      placeholder="Create username"
-                      value={form.username}
-                      onChange={(e) => updateField("username", e.target.value)}
-                      className={inputClass}
-                      required
+                    <input id="username" type="text" autoComplete="username"  placeholder="Create username" value={form.username} onChange={(e) => updateField("username", e.target.value)} className={inputClass} required
                     />
                   </div>
                   {errors.username && (

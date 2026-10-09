@@ -6,9 +6,10 @@ import {
   useState,
   type ChangeEvent,
 } from "react";
+
 import { useSearchParams } from "next/navigation";
+
 import {
-  Bell,
   BookOpen,
   CalendarDays,
   Camera,
@@ -18,14 +19,13 @@ import {
   FileText,
   GraduationCap,
   Mail,
-  Menu,
-  Trash2,
   Upload,
   UserRound,
 } from "lucide-react";
 
 import Sidebar from "@/components/layout/sidebar";
-import { getCurrentUser, type UserProfile } from "@/lib/auth";
+import Topbar from "@/components/layout/topbar";
+
 import { DOCUMENT_TYPES } from "@/lib/validations/students-documents";
 
 type StudentDocument = {
@@ -51,36 +51,14 @@ export default function StudentProfileInformation() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [currentUser, setCurrentUser] =
-    useState<UserProfile | null>(null);
-
-  const [documents, setDocuments] = useState<
-    StudentDocument[]
-  >([]);
+  const [documents, setDocuments] = useState<StudentDocument[]>([]);
 
   const [loading, setLoading] = useState(true);
 
   const studentId = searchParams.get("id") ?? "";
 
   /*
-   * Load logged-in user
-   */
-  useEffect(() => {
-    const user = getCurrentUser();
-
-    if (user) {
-      setCurrentUser(user);
-    }
-  }, []);
-
-  /*
    * Responsive sidebar
-   *
-   * Desktop:
-   * Sidebar starts open.
-   *
-   * Mobile/tablet:
-   * Sidebar starts closed.
    */
   useEffect(() => {
     const updateSidebar = () => {
@@ -92,10 +70,7 @@ export default function StudentProfileInformation() {
     window.addEventListener("resize", updateSidebar);
 
     return () => {
-      window.removeEventListener(
-        "resize",
-        updateSidebar
-      );
+      window.removeEventListener("resize", updateSidebar);
     };
   }, []);
 
@@ -112,8 +87,7 @@ export default function StudentProfileInformation() {
         return;
       }
 
-      const parsed: StudentDocument[] =
-        JSON.parse(stored);
+      const parsed: StudentDocument[] = JSON.parse(stored);
 
       const normalizedStudentId = studentId
         .trim()
@@ -514,63 +488,6 @@ export default function StudentProfileInformation() {
   };
 
   /*
-   * Shared top bar
-   */
-  const renderTopBar = () => (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm sm:px-5 lg:px-6">
-      <div className="flex items-center gap-2">
-        {/* HAMBURGER - ALWAYS VISIBLE */}
-        <button
-          type="button"
-          aria-label="Toggle sidebar"
-          onClick={() =>
-            setSidebarOpen(
-              (current) => !current
-            )
-          }
-          className="rounded-md p-2 text-slate-600 transition-all duration-200 hover:bg-slate-100 active:scale-95"
-        >
-          <Menu size={22} />
-        </button>
-
-        <h1 className="text-lg font-semibold text-slate-800">
-          STUDENT PROFILE
-        </h1>
-      </div>
-
-      <div className="flex items-center gap-3">
-        {/* NOTIFICATION */}
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative rounded-full p-2 text-slate-600 transition hover:bg-slate-100"
-        >
-          <Bell size={20} />
-
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-blue-500" />
-        </button>
-
-        {/* USER */}
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-            <UserRound size={19} />
-          </div>
-
-          <div className="hidden sm:block">
-            <p className="text-xs font-semibold text-slate-800">
-              {currentUser?.username || "User"}
-            </p>
-
-            <p className="text-[10px] text-slate-500">
-              {currentUser?.role || "Registrar"}
-            </p>
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-
-  /*
    * Loading state
    */
   if (loading) {
@@ -588,7 +505,12 @@ export default function StudentProfileInformation() {
               : "ml-0 w-full"
           }`}
         >
-          {renderTopBar()}
+          <Topbar
+            title="Student Profile"
+            onToggleSidebar={() =>
+              setSidebarOpen((current) => !current)
+            }
+          />
 
           <div className="mx-auto w-full max-w-[1500px] p-4 sm:p-5 lg:p-6">
             <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -620,7 +542,12 @@ export default function StudentProfileInformation() {
               : "ml-0 w-full"
           }`}
         >
-          {renderTopBar()}
+          <Topbar
+            title="Student Profile"
+            onToggleSidebar={() =>
+              setSidebarOpen((current) => !current)
+            }
+          />
 
           <div className="mx-auto w-full max-w-[1500px] p-4 sm:p-5 lg:p-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -664,7 +591,12 @@ export default function StudentProfileInformation() {
         }`}
       >
         {/* TOP BAR */}
-        {renderTopBar()}
+        <Topbar
+          title="Student Profile"
+          onToggleSidebar={() =>
+            setSidebarOpen((current) => !current)
+          }
+        />
 
         {/* CENTERED CONTENT */}
         <div className="mx-auto w-full max-w-[1500px] p-4 sm:p-5 lg:p-6">
@@ -970,7 +902,9 @@ export default function StudentProfileInformation() {
                                       type="file"
                                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                                       className="hidden"
-                                      onChange={(event) =>
+                                      onChange={(
+                                        event
+                                      ) =>
                                         handleRequirementUpload(
                                           documentType,
                                           event

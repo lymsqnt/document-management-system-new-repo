@@ -82,7 +82,7 @@ const navigationGroups: NavigationGroup[] = [
       },
       {
         label: "Audit Logs",
-        href: "/audit-logs",
+        href: "/audit-logs-page",
         icon: History,
       },
       {
@@ -115,12 +115,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex w-[275px] max-w-[85vw] flex-col
-          border-r border-blue-400/20
-          bg-gradient-to-b from-[#071A52] via-[#123D91] to-[#2563EB]
-          text-white shadow-2xl
-          transition-transform duration-300 ease-in-out
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+    border-r border-white/10
+    bg-gradient-to-b from-[#0B2A6F] via-[#1749A6] to-[#2563EB]
+    text-white shadow-2xl
+    transition-transform duration-300 ease-in-out
+    ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
+
         {/* ==================== */}
         {/* HEADER / LOGO */}
         {/* ==================== */}
@@ -190,20 +191,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                           text-[12px] font-medium
                           transition-all duration-200 ease-out
                           focus:outline-none focus:ring-2 focus:ring-white/30
-                          ${
-                            active
-                              ? "bg-white/14 text-white shadow-sm"
-                              : "text-blue-50/85 hover:bg-white/[0.08] hover:text-white"
+                          ${active
+                            ? "bg-white/14 text-white shadow-sm"
+                            : "text-blue-50/85 hover:bg-white/[0.08] hover:text-white"
                           }`}
                       >
                         {/* Active Indicator */}
                         <span
                           className={`absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full
                             transition-all duration-200
-                            ${
-                              active
-                                ? "bg-white opacity-100"
-                                : "bg-transparent opacity-0"
+                            ${active
+                              ? "bg-white opacity-100"
+                              : "bg-transparent opacity-0"
                             }`}
                         />
 
@@ -211,11 +210,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         <Icon
                           size={18}
                           strokeWidth={active ? 2 : 1.7}
-                          className={`shrink-0 transition-all duration-200 ${
-                            active
+                          className={`shrink-0 transition-all duration-200 ${active
                               ? "text-white"
                               : "text-blue-100/75 group-hover:text-white"
-                          }`}
+                            }`}
                         />
 
                         {/* Label */}

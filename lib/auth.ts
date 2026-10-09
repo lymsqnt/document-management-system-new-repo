@@ -1,3 +1,13 @@
+import {
+  USERNAME_PATTERN,
+  FULL_NAME_PATTERN,
+} from "@/lib/validations/create-account";
+
+/** Trim, collapse repeated spaces, ignore letter case. */
+function normalizeName(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export type DemoAccount = {
   fullName: string;
   username: string;
@@ -143,17 +153,73 @@ export function updateProfile(
     };
   }
 
-  const duplicateAccount = accounts.some(
-    (account, index) =>
-      index !== accountIndex &&
-      (account.username.toLowerCase() === profile.username.toLowerCase() ||
-        account.email.toLowerCase() === profile.email.toLowerCase())
-  );
-
-  if (duplicateAccount) {
+  if (!FULL_NAME_PATTERN.test(profile.fullName.trim())) {
     return {
       success: false,
-      message: "Username or email is already in use.",
+      message: "Full name must contain letters only (no numbers or symbols).",
+    };
+  }
+
+  const newName = normalizeName(profile.fullName);
+  const newUsername = profile.username.trim();
+  const newEmail = profile.email.trim().toLowerCase();
+
+  // Username format: letters + special characters (only checked when changed,
+  // so older accounts can still edit their other details).
+  const usernameChanged =
+    newUsername.toLowerCase() !== oldUsername.trim().toLowerCase();
+
+  if (usernameChanged) {
+    if (newUsername.length < 3) {
+      return {
+        success: false,
+        message: "Username must be at least 3 characters.",
+      };
+    }
+
+    if (/\s/.test(newUsername)) {
+      return {
+        success: false,
+        message: "Username must not contain spaces.",
+      };
+    }
+
+    if (!USERNAME_PATTERN.test(newUsername)) {
+      return {
+        success: false,
+        message:
+          "Username must mix letters and special characters (e.g. @, _, ., -).",
+      };
+    }
+  }
+
+  // Full name, username and email must not belong to ANOTHER account.
+  const others = accounts.filter((_, index) => index !== accountIndex);
+
+  if (others.some((a) => normalizeName(a.fullName ?? "") === newName)) {
+    return {
+      success: false,
+      message: "This full name is already used by another account.",
+    };
+  }
+
+  if (
+    others.some(
+      (a) => (a.username ?? "").trim().toLowerCase() === newUsername.toLowerCase()
+    )
+  ) {
+    return {
+      success: false,
+      message: "This username is already taken.",
+    };
+  }
+
+  if (
+    others.some((a) => (a.email ?? "").trim().toLowerCase() === newEmail)
+  ) {
+    return {
+      success: false,
+      message: "This email address is already registered.",
     };
   }
 
@@ -273,14 +339,14 @@ export function resetPasswordByEmail(
   const currentUser = getCurrentUser();
 
   if (
-  typeof window !== "undefined" &&
-  currentUser?.email.toLowerCase() === normalizedEmail
-) {
-  localStorage.setItem(
-    CURRENT_USER_KEY,
-    JSON.stringify(toSafeUser(accounts[accountIndex]))
-  );
-}
+    typeof window !== "undefined" &&
+    currentUser?.email.toLowerCase() === normalizedEmail
+  ) {
+    localStorage.setItem(
+      CURRENT_USER_KEY,
+      JSON.stringify(toSafeUser(accounts[accountIndex]))
+    );
+  }
 
   return { success: true };
 }

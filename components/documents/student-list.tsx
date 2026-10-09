@@ -3,18 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Bell,
   ChevronDown,
   Eye,
-  Menu,
   Search,
   Trash2,
   UserRound,
 } from "lucide-react";
 
 import Sidebar from "@/components/layout/sidebar";
+import Topbar from "@/components/layout/topbar";
 import WelcomeBanner from "@/components/layout/welcome-banner";
-import { getCurrentUser, type UserProfile } from "@/lib/auth";
 
 type StudentDocument = {
   id: string;
@@ -43,26 +41,17 @@ const STORAGE_KEY = "demo-student-documents";
 export default function StudentList() {
   const router = useRouter();
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] =
+    useState(false);
 
-  const [students, setStudents] = useState<Student[]>([]);
-  const [search, setSearch] = useState("");
+  const [students, setStudents] =
+    useState<Student[]>([]);
+
+  const [search, setSearch] =
+    useState("");
+
   const [filter, setFilter] =
     useState("All Documents");
-
-  const [currentUser, setCurrentUser] =
-    useState<UserProfile | null>(null);
-
-  /*
-   * Load logged-in user
-   */
-  useEffect(() => {
-    const user = getCurrentUser();
-
-    if (user) {
-      setCurrentUser(user);
-    }
-  }, []);
 
   /*
    * Responsive sidebar
@@ -123,19 +112,25 @@ export default function StudentList() {
           studentId.toUpperCase();
 
         const existingStudent =
-          studentMap.get(normalizedStudentId);
+          studentMap.get(
+            normalizedStudentId
+          );
 
         if (!existingStudent) {
-          studentMap.set(normalizedStudentId, {
-            id: studentId,
-            studentName:
-              document.studentName,
-            studentId,
-            course:
-              document.course?.trim() || "—",
-            email: document.email,
-            status: "Active",
-          });
+          studentMap.set(
+            normalizedStudentId,
+            {
+              id: studentId,
+              studentName:
+                document.studentName,
+              studentId,
+              course:
+                document.course?.trim() ||
+                "—",
+              email: document.email,
+              status: "Active",
+            }
+          );
         } else {
           /*
            * If another document contains
@@ -152,7 +147,9 @@ export default function StudentList() {
       });
 
       setStudents(
-        Array.from(studentMap.values())
+        Array.from(
+          studentMap.values()
+        )
       );
     } catch (error) {
       console.error(
@@ -197,9 +194,10 @@ export default function StudentList() {
   const handleDeleteStudent = (
     student: Student
   ) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${student.studentName}?\n\nAll documents submitted under ${student.studentId} will also be deleted.`
-    );
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to delete ${student.studentName}?\n\nAll documents submitted under ${student.studentId} will also be deleted.`
+      );
 
     if (!confirmed) {
       return;
@@ -207,7 +205,9 @@ export default function StudentList() {
 
     try {
       const stored =
-        localStorage.getItem(STORAGE_KEY);
+        localStorage.getItem(
+          STORAGE_KEY
+        );
 
       if (!stored) {
         return;
@@ -232,7 +232,9 @@ export default function StudentList() {
 
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify(updatedDocuments)
+        JSON.stringify(
+          updatedDocuments
+        )
       );
 
       loadStudents();
@@ -247,63 +249,44 @@ export default function StudentList() {
   /*
    * Search students
    */
-  const filteredStudents = students.filter(
-    (student) => {
-      const searchValue =
-        search.trim().toLowerCase();
+  const filteredStudents =
+    students.filter(
+      (student) => {
+        const searchValue =
+          search.trim().toLowerCase();
 
-      if (!searchValue) {
-        return true;
+        if (!searchValue) {
+          return true;
+        }
+
+        return (
+          student.studentName
+            .toLowerCase()
+            .includes(searchValue) ||
+          student.studentId
+            .toLowerCase()
+            .includes(searchValue) ||
+          student.course
+            .toLowerCase()
+            .includes(searchValue) ||
+          student.email
+            .toLowerCase()
+            .includes(searchValue)
+        );
       }
-
-      return (
-        student.studentName
-          .toLowerCase()
-          .includes(searchValue) ||
-        student.studentId
-          .toLowerCase()
-          .includes(searchValue) ||
-        student.course
-          .toLowerCase()
-          .includes(searchValue) ||
-        student.email
-          .toLowerCase()
-          .includes(searchValue)
-      );
-    }
-  );
-
-  /*
-   * Current user
-   */
-  const displayName =
-    currentUser?.fullName?.trim() ||
-    "User";
-
-  const displayRole =
-    currentUser?.role?.trim() ||
-    "Administrator";
+    );
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[#f1f3fc] text-slate-800">
       {/* SIDEBAR */}
       <Sidebar
         isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        onClose={() =>
+          setSidebarOpen(false)
+        }
       />
 
-      {/*
-       * MAIN CONTENT
-       *
-       * Sidebar open:
-       *   275px reserved for sidebar
-       *
-       * Sidebar closed:
-       *   Full screen width
-       *
-       * The transition makes the content
-       * smoothly move instead of jumping.
-       */}
+      {/* MAIN CONTENT */}
       <main
         className={`min-h-screen w-full transition-[margin,width] duration-300 ease-in-out ${
           sidebarOpen
@@ -311,60 +294,15 @@ export default function StudentList() {
             : "ml-0 w-full"
         }`}
       >
-        {/* HEADER */}
-        <header className="sticky top-0 z-30 flex min-h-[58px] w-full items-center justify-between border-b border-slate-200 bg-white px-3 shadow-sm transition-all duration-300 sm:px-5 lg:px-6">
-          {/* LEFT SIDE */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* HAMBURGER - ALWAYS VISIBLE */}
-            <button
-              type="button"
-              aria-label="Toggle sidebar"
-              onClick={() =>
-                setSidebarOpen(
-                  (open) => !open
-                )
-              }
-              className="rounded-md p-2 text-slate-700 transition-all duration-200 hover:bg-slate-100 active:scale-95"
-            >
-              <Menu size={24} />
-            </button>
-
-            <h2 className="text-base font-semibold text-slate-800 sm:text-lg">
-              STUDENT LIST
-            </h2>
-          </div>
-
-          {/* RIGHT SIDE */}
-          <div className="flex items-center gap-3 sm:gap-4">
-            {/* NOTIFICATION */}
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="relative rounded-full border border-slate-200 p-2 text-slate-700 transition-all duration-200 hover:bg-slate-100 active:scale-95"
-            >
-              <Bell size={18} />
-
-              <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-blue-600" />
-            </button>
-
-            {/* USER */}
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-blue-500 bg-blue-100 text-blue-700">
-                <UserRound size={18} />
-              </div>
-
-              <div className="hidden text-right sm:block">
-                <p className="text-xs font-medium text-slate-800">
-                  {displayName}
-                </p>
-
-                <p className="text-[11px] text-slate-500">
-                  {displayRole}
-                </p>
-              </div>
-            </div>
-          </div>
-        </header>
+        {/* REUSABLE TOPBAR */}
+        <Topbar
+          title="Student List"
+          onToggleSidebar={() =>
+            setSidebarOpen(
+              (current) => !current
+            )
+          }
+        />
 
         {/* CENTERED PAGE CONTENT */}
         <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 transition-all duration-300 sm:p-5 lg:p-6">
@@ -491,7 +429,9 @@ export default function StudentList() {
                     filteredStudents.map(
                       (student) => (
                         <tr
-                          key={student.studentId}
+                          key={
+                            student.studentId
+                          }
                           className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50"
                         >
                           <td className="px-3 py-4 text-sm font-medium text-slate-800">
@@ -526,7 +466,9 @@ export default function StudentList() {
                                 }
                                 className="rounded-md p-2 text-blue-600 transition-all duration-200 hover:bg-blue-50 active:scale-95"
                               >
-                                <Eye size={18} />
+                                <Eye
+                                  size={18}
+                                />
                               </button>
 
                               {/* DELETE */}
@@ -556,7 +498,8 @@ export default function StudentList() {
                         colSpan={5}
                         className="px-3 py-10 text-center text-sm text-slate-500"
                       >
-                        {students.length === 0
+                        {students.length ===
+                        0
                           ? "No students have been submitted yet."
                           : "No students found."}
                       </td>
@@ -570,8 +513,8 @@ export default function StudentList() {
             <div className="mt-4 flex items-center justify-between border-t border-slate-100 px-5 py-4 sm:px-6">
               <p className="text-xs text-slate-500">
                 Showing{" "}
-                {filteredStudents.length} of{" "}
-                {students.length} students
+                {filteredStudents.length}{" "}
+                of {students.length} students
               </p>
 
               <div className="flex gap-1">

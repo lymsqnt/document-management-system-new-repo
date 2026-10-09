@@ -9,14 +9,12 @@ import {
 } from "react";
 
 import {
-  Bell,
   BookOpen,
   CalendarDays,
   FileText,
   GraduationCap,
   Layers3,
   Mail,
-  Menu,
   MessageSquare,
   UploadCloud,
   UserRound,
@@ -24,10 +22,9 @@ import {
 } from "lucide-react";
 
 import Sidebar from "@/components/layout/sidebar";
+import Topbar from "@/components/layout/topbar";
 import WelcomeBanner from "@/components/layout/welcome-banner";
 import Select from "@/components/ui/select";
-
-import { getCurrentUser, type UserProfile } from "@/lib/auth";
 
 import {
   COURSE_MAJORS,
@@ -72,9 +69,6 @@ const getTodayDate = () => {
 export default function DocumentList() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [currentUser, setCurrentUser] =
-    useState<UserProfile | null>(null);
-
   const [studentId, setStudentId] = useState("");
   const [studentName, setStudentName] = useState("");
   const [course, setCourse] = useState("");
@@ -101,13 +95,7 @@ export default function DocumentList() {
 
   const availableMajors = COURSE_MAJORS[course] ?? [];
 
-  useEffect(() => {
-    const user = getCurrentUser();
 
-    if (user) {
-      setCurrentUser(user);
-    }
-  }, []);
 
   useEffect(() => {
     const updateSidebar = () => {
@@ -122,15 +110,6 @@ export default function DocumentList() {
       window.removeEventListener("resize", updateSidebar);
     };
   }, []);
-
-  const displayName =
-    currentUser?.fullName?.trim() || "User";
-
-  const displayRole =
-    currentUser?.role?.trim() || "User";
-
-  const profileImage =
-    currentUser?.profileImage?.trim() || "";
 
   const handleFileChange = (
     event: ChangeEvent<HTMLInputElement>
@@ -410,68 +389,19 @@ export default function DocumentList() {
       />
 
       <main
-        className={`min-h-screen w-full transition-[margin] duration-300 ${
-          sidebarOpen
+        className={`min-h-screen w-full transition-[margin] duration-300 ${sidebarOpen
             ? "lg:ml-[275px] lg:w-[calc(100%-275px)]"
             : "ml-0 w-full"
-        }`}
+          }`}
       >
         {/* HEADER */}
-        <header className="sticky top-0 z-30 flex min-h-[58px] w-full items-center justify-between border-b border-slate-200 bg-white px-3 shadow-sm sm:px-5 lg:px-6">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              aria-label="Toggle sidebar"
-              onClick={() =>
-                setSidebarOpen((open) => !open)
-              }
-              className="rounded-md p-2 text-slate-700 transition-colors hover:bg-slate-100"
-            >
-              <Menu size={24} />
-            </button>
 
-            <h2 className="text-base font-semibold text-slate-800 sm:text-lg">
-              MY PROFILE
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-3 sm:gap-4">
-            <button
-              type="button"
-              className="relative rounded-full border border-slate-200 p-2 text-slate-700 transition-colors hover:bg-slate-100"
-              aria-label="Notifications"
-            >
-              <Bell size={17} />
-
-              <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-blue-600" />
-            </button>
-
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-blue-500 bg-blue-100 text-blue-800">
-                {profileImage ? (
-                  <img
-                    src={profileImage}
-                    alt={displayName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <UserRound size={18} />
-                )}
-              </div>
-
-              <div className="hidden text-right sm:block">
-                <p className="text-xs font-medium text-slate-800">
-                  {displayName}
-                </p>
-
-                <p className="text-[11px] text-slate-500">
-                  {displayRole}
-                </p>
-              </div>
-            </div>
-          </div>
-        </header>
-
+        <Topbar
+          title="Documents"
+          onToggleSidebar={() =>
+            setSidebarOpen((current) => !current)
+          }
+        />
         {/* PAGE CONTENT */}
         <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:p-5 lg:p-6">
           <WelcomeBanner />
@@ -587,11 +517,10 @@ export default function DocumentList() {
                     aria-hidden={
                       availableMajors.length === 0
                     }
-                    className={`grid transition-all duration-300 ease-in-out ${
-                      availableMajors.length > 0
+                    className={`grid transition-all duration-300 ease-in-out ${availableMajors.length > 0
                         ? "grid-rows-[1fr] opacity-100"
                         : "pointer-events-none grid-rows-[0fr] opacity-0"
-                    }`}
+                      }`}
                   >
                     <div className="min-h-0">
                       <label className="block">
