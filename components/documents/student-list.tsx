@@ -1,18 +1,21 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   Eye,
-  FileText,
-  Filter,
   Search,
   SlidersHorizontal,
   Trash2,
   UserRound,
-  X,
 } from "lucide-react";
 
 import Sidebar from "@/components/layout/sidebar";
@@ -21,7 +24,6 @@ import WelcomeBanner from "@/components/layout/welcome-banner";
 import {
   COLLEGE_COURSES,
   COURSE_MAJORS,
-  DOCUMENT_TYPES,
   YEAR_LEVELS,
 } from "@/lib/constants/student";
 import { logActivity } from "@/lib/storage/audit-logs";
@@ -37,22 +39,9 @@ import {
   getYearSortValue,
 } from "@/lib/students";
 import type { StudentSummary as Student } from "@/lib/types/student";
-
-type ProgressFilter =
-  | "All Progress"
-  | "Completed"
-  | "Incomplete"
-  | "No Documents Submitted";
-
-type FilterState = {
-  college: string;
-  course: string;
-  major: string;
-  yearLevel: string;
-  enrollmentStatus: string;
-  progress: ProgressFilter;
-  search: string;
-};
+import StudentFilters, {
+  type FilterState,
+} from "@/components/documents/student-filters";
 
 const ALL = "All";
 
@@ -68,16 +57,20 @@ const EMPTY_FILTERS: FilterState = {
 
 export default function StudentList() {
   const router = useRouter();
+  const filterContainerRef = useRef<HTMLDivElement>(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [search, setSearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
+
   const [appliedFilters, setAppliedFilters] =
     useState<FilterState>({ ...EMPTY_FILTERS });
+
   const [draftFilters, setDraftFilters] =
     useState<FilterState>({ ...EMPTY_FILTERS });
 
+  // RESPONSIVE SIDEBAR
   useEffect(() => {
     const updateSidebar = () => {
       setSidebarOpen(window.innerWidth >= 1024);
@@ -86,9 +79,12 @@ export default function StudentList() {
     updateSidebar();
     window.addEventListener("resize", updateSidebar);
 
-    return () => window.removeEventListener("resize", updateSidebar);
+    return () => {
+      window.removeEventListener("resize", updateSidebar);
+    };
   }, []);
 
+  // LOAD STUDENTS
   const loadStudents = useCallback(() => {
     try {
       setStudents(buildStudentSummaries(getStudentDocuments()));
@@ -98,11 +94,14 @@ export default function StudentList() {
     }
   }, []);
 
+  // REFRESH WHEN STUDENT DOCUMENTS CHANGE
   useEffect(() => {
     loadStudents();
 
     const onStorage = (event: StorageEvent) => {
-      if (event.key === STUDENT_DOCUMENTS_KEY) loadStudents();
+      if (event.key === STUDENT_DOCUMENTS_KEY) {
+        loadStudents();
+      }
     };
 
     window.addEventListener("storage", onStorage);
@@ -122,18 +121,50 @@ export default function StudentList() {
     };
   }, [loadStudents]);
 
+  // CLOSE FILTERS WITH ESCAPE
   useEffect(() => {
     if (!filterOpen) return;
 
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setFilterOpen(false);
+      if (event.key === "Escape") {
+        setFilterOpen(false);
+      }
     };
 
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+    };
   }, [filterOpen]);
 
-  // Include configured colleges even when there are no saved students.
+  // CLOSE FILTERS WHEN CLICKING OUTSIDE
+  useEffect(() => {
+    if (!filterOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target;
+
+      if (
+        target instanceof Node &&
+        filterContainerRef.current &&
+        !filterContainerRef.current.contains(target)
+      ) {
+        setFilterOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleOutsideClick,
+      );
+    };
+  }, [filterOpen]);
+
+  // COLLEGE OPTIONS
   const colleges = useMemo(() => {
     return Array.from(
       new Set([
@@ -148,7 +179,7 @@ export default function StudentList() {
     ).sort();
   }, [students]);
 
-  // Courses change automatically when the selected college changes.
+  // COURSE OPTIONS DEPEND ON SELECTED COLLEGE
   const courses = useMemo(() => {
     const configuredCourses =
       draftFilters.college === ALL
@@ -169,7 +200,7 @@ export default function StudentList() {
     ).sort();
   }, [students, draftFilters.college]);
 
-  // Major choices depend on the selected course and college.
+  // MAJOR OPTIONS DEPEND ON SELECTED COURSE
   const majors = useMemo(() => {
     const mappedMajors =
       draftFilters.course !== ALL
@@ -185,14 +216,17 @@ export default function StudentList() {
             student.course === draftFilters.course),
       )
       .map((student) => student.major)
-      .filter((major) => major && major !== "—" && major !== "N/A");
+      .filter(
+        (major) =>
+          major && major !== "—" && major !== "N/A",
+      );
 
     return Array.from(
       new Set([...mappedMajors, ...savedMajors]),
     ).sort();
   }, [students, draftFilters.college, draftFilters.course]);
 
-  // Year levels reflect records matching the current selections.
+  // YEAR LEVEL OPTIONS DEPEND ON SELECTIONS
   const yearLevels = useMemo(() => {
     const savedYearLevels = students
       .filter(
@@ -219,16 +253,25 @@ export default function StudentList() {
     draftFilters.major,
   ]);
 
+  // FILTER STUDENTS
   const filteredStudents = useMemo(() => {
     const query = `${search} ${appliedFilters.search}`
       .trim()
       .toLowerCase();
 
     return students.filter((student) => {
+      const studentName = (
+        student.studentName ?? ""
+      ).toLowerCase();
+
+      const studentId = (
+        student.studentId ?? ""
+      ).toLowerCase();
+
       const matchesSearch =
         !query ||
-        student.studentName.toLowerCase().includes(query) ||
-        student.studentId.toLowerCase().includes(query);
+        studentName.includes(query) ||
+        studentId.includes(query);
 
       const matchesCollege =
         appliedFilters.college === ALL ||
@@ -248,7 +291,8 @@ export default function StudentList() {
 
       const matchesEnrollment =
         appliedFilters.enrollmentStatus === ALL ||
-        student.enrollmentStatus === appliedFilters.enrollmentStatus;
+        student.enrollmentStatus ===
+        appliedFilters.enrollmentStatus;
 
       const matchesProgress =
         appliedFilters.progress === "All Progress" ||
@@ -266,6 +310,7 @@ export default function StudentList() {
     });
   }, [students, search, appliedFilters]);
 
+  // DELETE STUDENT
   const handleDeleteStudent = (student: Student) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete ${student.studentName}?\n\nAll documents submitted under ${student.studentId} will also be deleted.`,
@@ -284,29 +329,43 @@ export default function StudentList() {
       });
 
       loadStudents();
+
       window.dispatchEvent(
         new Event(STUDENT_DOCUMENTS_UPDATED_EVENT),
       );
     } catch (error) {
       console.error("Failed to delete student:", error);
+      window.alert(
+        "Unable to delete this student. Please try again.",
+      );
     }
   };
 
+  // OPEN FILTERS
   const openFilters = () => {
     setDraftFilters({ ...appliedFilters });
     setFilterOpen(true);
   };
 
+  // RESET DRAFT FILTERS
   const resetFilters = () => {
     setDraftFilters({ ...EMPTY_FILTERS });
   };
 
+  // CANCEL WITHOUT APPLYING DRAFT CHANGES
+  const cancelFilters = () => {
+    setDraftFilters({ ...appliedFilters });
+    setFilterOpen(false);
+  };
+
+  // APPLY FILTERS
   const applyFilters = () => {
     setAppliedFilters({ ...draftFilters });
     setSearch("");
     setFilterOpen(false);
   };
 
+  // COUNT ACTIVE FILTERS
   const activeFilterCount = [
     appliedFilters.college !== ALL,
     appliedFilters.course !== ALL,
@@ -317,17 +376,10 @@ export default function StudentList() {
     Boolean(appliedFilters.search.trim()),
   ].filter(Boolean).length;
 
-  const selectClass =
-    "h-10 w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 pr-9 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
-
-  const renderSelectArrow = () => (
-    <ChevronDown
-      size={16}
-      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-    />
-  );
-
-  const progressBadgeClass = (progress: Student["progress"]) => {
+  // PROGRESS BADGE STYLE
+  const progressBadgeClass = (
+    progress: Student["progress"],
+  ) => {
     if (progress === "Completed") {
       return "bg-emerald-50 text-emerald-700";
     }
@@ -339,8 +391,22 @@ export default function StudentList() {
     return "bg-amber-50 text-amber-700";
   };
 
-  const progressBarClass = (progress: Student["progress"]) =>
-    progress === "Completed" ? "bg-emerald-500" : "bg-amber-400";
+  // PROGRESS BAR STYLE
+  const progressBarClass = (
+    progress: Student["progress"],
+  ) =>
+    progress === "Completed"
+      ? "bg-emerald-500"
+      : "bg-amber-400";
+
+  // OPEN STUDENT PROFILE
+  const openStudentProfile = (studentId: string) => {
+    router.push(
+      `/student-profile-information?id=${encodeURIComponent(
+        studentId,
+      )}`,
+    );
+  };
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-[#f1f3fc] text-slate-800">
@@ -350,11 +416,10 @@ export default function StudentList() {
       />
 
       <main
-        className={`min-h-screen w-full transition-[margin,width] duration-300 ${
-          sidebarOpen
+        className={`min-h-screen w-full transition-[margin,width] duration-300 ${sidebarOpen
             ? "lg:ml-[275px] lg:w-[calc(100%-275px)]"
             : "ml-0 w-full"
-        }`}
+          }`}
       >
         <Topbar
           title="Student List"
@@ -366,17 +431,20 @@ export default function StudentList() {
         <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:p-5 lg:p-6">
           <WelcomeBanner />
 
-          <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
+          <section className="relative rounded-2xl bg-white shadow-sm">
+            {/* HEADER */}
             <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
               <div className="flex items-start gap-2">
                 <UserRound
                   size={22}
                   className="mt-0.5 text-blue-600"
                 />
+
                 <div>
                   <h2 className="text-base font-semibold text-blue-700">
                     STUDENT LIST
                   </h2>
+
                   <p className="text-[10px] text-slate-500">
                     View and manage student records and document submissions.
                   </p>
@@ -390,349 +458,87 @@ export default function StudentList() {
             </div>
 
             {/* SEARCH AND FILTER BUTTON */}
-            <div className="flex flex-col gap-3 px-5 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
-              <div className="relative w-full md:max-w-md">
-                <Search
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search by Student Name or Student ID"
-                  className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() =>
-                    filterOpen ? setFilterOpen(false) : openFilters()
-                  }
-                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 md:w-auto"
-                >
-                  <SlidersHorizontal size={16} />
-                  Filters
-                  {activeFilterCount > 0 && (
-                    <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] text-white">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </button>
-
-                {filterOpen && (
-                  <>
-                  <button
-                    type="button"
-                    aria-label="Close filters overlay"
-                    onClick={() => setFilterOpen(false)}
-                    className="fixed inset-0 z-[100] bg-slate-950/40 backdrop-blur-[1px]"
+            <div className="px-5 py-4 sm:px-6">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                {/* SEARCH */}
+                <div className="relative w-full md:max-w-md">
+                  <Search
+                    size={18}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                   />
 
-                  <section
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Refine Students"
-                    className="fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(event) =>
+                      setSearch(event.target.value)
+                    }
+                    placeholder="Search by Student Name or Student ID"
+                    className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* FILTER BUTTON AND DROPDOWN */}
+                <div
+                  ref={filterContainerRef}
+                  className="relative w-full md:w-auto"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (filterOpen) {
+                        setFilterOpen(false);
+                      } else {
+                        openFilters();
+                      }
+                    }}
+                    aria-expanded={filterOpen}
+                    aria-controls="student-filters-panel"
+                    className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 md:w-auto"
                   >
-                    <header className="flex items-start justify-between border-b border-slate-100 px-4 py-3">
-                      <div>
-                        <h2 className="text-sm font-semibold text-slate-900">
-                          Refine Students
-                        </h2>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Filter student records
-                        </p>
-                      </div>
+                    <SlidersHorizontal size={16} />
 
-                      <button
-                        type="button"
-                        aria-label="Close filters"
-                        onClick={() => setFilterOpen(false)}
-                        className="rounded-md p-1 text-slate-400 hover:bg-slate-100"
-                      >
-                        <X size={17} />
-                      </button>
-                    </header>
+                    Filters
 
-                    <div className="space-y-4 overflow-y-auto px-4 py-4">
-                      {/* COLLEGE */}
-                      <div className="space-y-1.5">
-                        <label
-                          htmlFor="filter-college"
-                          className="block text-xs font-medium text-slate-700"
-                        >
-                          College / Classification
-                        </label>
+                    {activeFilterCount > 0 && (
+                      <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] text-white">
+                        {activeFilterCount}
+                      </span>
+                    )}
 
-                        <div className="relative">
-                          <select
-                            id="filter-college"
-                            value={draftFilters.college}
-                            onChange={(event) =>
-                              setDraftFilters((filter) => ({
-                                ...filter,
-                                college: event.target.value,
-                                course: ALL,
-                                major: ALL,
-                                yearLevel: ALL,
-                              }))
-                            }
-                            className={selectClass}
-                          >
-                            <option value={ALL}>All Colleges</option>
-                            {colleges.map((college) => (
-                              <option key={college} value={college}>
-                                {college}
-                              </option>
-                            ))}
-                          </select>
-                          {renderSelectArrow()}
-                        </div>
-                      </div>
+                    <ChevronDown
+                      size={15}
+                      className={`transition-transform duration-300 ${filterOpen ? "rotate-180" : ""
+                        }`}
+                    />
+                  </button>
 
-                      <div className="space-y-4 rounded-xl border border-blue-100 bg-blue-50/40 p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-                          {draftFilters.college === ALL
-                            ? "All Colleges"
-                            : draftFilters.college}
-                        </p>
-
-                        {/* COURSE */}
-                        <div className="space-y-1.5">
-                          <label
-                            htmlFor="filter-course"
-                            className="block text-xs font-medium text-slate-700"
-                          >
-                            Course
-                          </label>
-
-                          <div className="relative">
-                            <select
-                              id="filter-course"
-                              value={draftFilters.course}
-                              onChange={(event) =>
-                                setDraftFilters((filter) => ({
-                                  ...filter,
-                                  course: event.target.value,
-                                  major: ALL,
-                                  yearLevel: ALL,
-                                }))
-                              }
-                              className={selectClass}
-                            >
-                              <option value={ALL}>All Courses</option>
-                              {courses.map((course) => (
-                                <option key={course} value={course}>
-                                  {getCourseLabel(course)}
-                                </option>
-                              ))}
-                            </select>
-                            {renderSelectArrow()}
-                          </div>
-                        </div>
-
-                        {/* MAJOR */}
-                        <div className="space-y-1.5">
-                          <label
-                            htmlFor="filter-major"
-                            className="block text-xs font-medium text-slate-700"
-                          >
-                            Major
-                          </label>
-
-                          <div className="relative">
-                            <select
-                              id="filter-major"
-                              value={draftFilters.major}
-                              onChange={(event) =>
-                                setDraftFilters((filter) => ({
-                                  ...filter,
-                                  major: event.target.value,
-                                  yearLevel: ALL,
-                                }))
-                              }
-                              className={selectClass}
-                            >
-                              <option value={ALL}>All Majors</option>
-                              {majors.map((major) => (
-                                <option key={major} value={major}>
-                                  {major}
-                                </option>
-                              ))}
-                            </select>
-                            {renderSelectArrow()}
-                          </div>
-                        </div>
-
-                        {/* YEAR LEVEL */}
-                        <div className="space-y-1.5">
-                          <label
-                            htmlFor="filter-year"
-                            className="block text-xs font-medium text-slate-700"
-                          >
-                            Year Level
-                          </label>
-
-                          <div className="relative">
-                            <select
-                              id="filter-year"
-                              value={draftFilters.yearLevel}
-                              onChange={(event) =>
-                                setDraftFilters((filter) => ({
-                                  ...filter,
-                                  yearLevel: event.target.value,
-                                }))
-                              }
-                              className={selectClass}
-                            >
-                              <option value={ALL}>
-                                All Year Levels
-                              </option>
-                              {yearLevels.map((year) => (
-                                <option key={year} value={year}>
-                                  {year}
-                                </option>
-                              ))}
-                            </select>
-                            {renderSelectArrow()}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* ENROLLMENT STATUS */}
-                      <div className="space-y-1.5">
-                        <label
-                          htmlFor="filter-enrollment"
-                          className="block text-xs font-medium text-slate-700"
-                        >
-                          Enrollment Status
-                        </label>
-
-                        <div className="relative">
-                          <select
-                            id="filter-enrollment"
-                            value={draftFilters.enrollmentStatus}
-                            onChange={(event) =>
-                              setDraftFilters((filter) => ({
-                                ...filter,
-                                enrollmentStatus: event.target.value,
-                              }))
-                            }
-                            className={selectClass}
-                          >
-                            <option value={ALL}>All Statuses</option>
-                            <option value="Enrolled">Enrolled</option>
-                            <option value="Graduated">Graduated</option>
-                            <option value="Transferred">Transferred</option>
-                          </select>
-                          {renderSelectArrow()}
-                        </div>
-                      </div>
-
-                      {/* DOCUMENT PROGRESS */}
-                      <div className="space-y-1.5">
-                        <label
-                          htmlFor="filter-progress"
-                          className="block text-xs font-medium text-slate-700"
-                        >
-                          Document Progress
-                        </label>
-
-                        <div className="relative">
-                          <select
-                            id="filter-progress"
-                            value={draftFilters.progress}
-                            onChange={(event) =>
-                              setDraftFilters((filter) => ({
-                                ...filter,
-                                progress: event.target.value as ProgressFilter,
-                              }))
-                            }
-                            className={selectClass}
-                          >
-                            <option value="All Progress">
-                              All Progress
-                            </option>
-                            <option value="Completed">Completed</option>
-                            <option value="Incomplete">Incomplete</option>
-                            <option value="No Documents Submitted">
-                              No Documents Submitted
-                            </option>
-                          </select>
-                          {renderSelectArrow()}
-                        </div>
-                      </div>
-
-                      {/* SEARCH */}
-                      <div className="space-y-1.5">
-                        <label
-                          htmlFor="filter-search"
-                          className="block text-xs font-medium text-slate-700"
-                        >
-                          Search Student
-                        </label>
-
-                        <div className="relative">
-                          <Search
-                            size={16}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                          />
-                          <input
-                            id="filter-search"
-                            type="search"
-                            value={draftFilters.search}
-                            onChange={(event) =>
-                              setDraftFilters((filter) => ({
-                                ...filter,
-                                search: event.target.value,
-                              }))
-                            }
-                            placeholder="Student name or Student ID"
-                            className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                          />
-                        </div>
-                      </div>
-
-                      <p className="text-[11px] leading-5 text-slate-500">
-                        <FileText size={13} className="mr-1 inline" />
-                        Progress is based on the {DOCUMENT_TYPES.length} required document types.
-                      </p>
+                  {/* DROPDOWN FILTER PANEL */}
+                  <div
+                    className={`absolute right-0 top-full z-[100] mt-2 w-[min(92vw,680px)] transition-all duration-300 ease-in-out ${filterOpen
+                        ? "visible translate-y-0 opacity-100"
+                        : "invisible -translate-y-2 opacity-0 pointer-events-none"
+                      }`}
+                  >
+                    <div className="max-h-[min(75vh,650px)] overflow-y-auto rounded-2xl">
+                      <StudentFilters
+                        isOpen={filterOpen}
+                        draftFilters={draftFilters}
+                        setDraftFilters={setDraftFilters}
+                        colleges={colleges}
+                        courses={courses.map((course) => ({
+                          value: course,
+                          label: getCourseLabel(course),
+                        }))}
+                        majors={majors}
+                        yearLevels={yearLevels}
+                        onReset={resetFilters}
+                        onCancel={cancelFilters}
+                        onApply={applyFilters}
+                      />
                     </div>
-
-                    <footer className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={resetFilters}
-                        className="rounded-lg px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-50"
-                      >
-                        Reset
-                      </button>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setFilterOpen(false)}
-                          className="rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                        >
-                          Cancel
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={applyFilters}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-blue-800 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-900"
-                        >
-                          <Filter size={14} />
-                          Apply Filters
-                        </button>
-                      </div>
-                    </footer>
-                  </section>
-                  </>
-                )}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -783,10 +589,13 @@ export default function StudentList() {
                 <tbody>
                   {filteredStudents.length > 0 ? (
                     filteredStudents.map((student) => {
-                      const percentage = Math.round(
-                        (student.submittedCount /
-                          Math.max(student.requiredCount, 1)) *
+                      const percentage = Math.min(
+                        100,
+                        Math.round(
+                          (student.submittedCount /
+                            Math.max(student.requiredCount, 1)) *
                           100,
+                        ),
                       );
 
                       return (
@@ -813,6 +622,7 @@ export default function StudentList() {
                                   {student.submittedCount}/
                                   {student.requiredCount} documents
                                 </span>
+
                                 <span className="text-[10px] text-slate-500">
                                   {percentage}%
                                 </span>
@@ -823,7 +633,9 @@ export default function StudentList() {
                                   className={`h-full rounded-full ${progressBarClass(
                                     student.progress,
                                   )}`}
-                                  style={{ width: `${percentage}%` }}
+                                  style={{
+                                    width: `${percentage}%`,
+                                  }}
                                 />
                               </div>
 
@@ -848,10 +660,8 @@ export default function StudentList() {
                                 title="View Student"
                                 aria-label={`View ${student.studentName}`}
                                 onClick={() =>
-                                  router.push(
-                                    `/student-profile-information?id=${encodeURIComponent(
-                                      student.studentId,
-                                    )}`,
+                                  openStudentProfile(
+                                    student.studentId,
                                   )
                                 }
                                 className="rounded-md p-2 text-blue-600 hover:bg-blue-50"
@@ -863,7 +673,9 @@ export default function StudentList() {
                                 type="button"
                                 title="Delete Student"
                                 aria-label={`Delete ${student.studentName}`}
-                                onClick={() => handleDeleteStudent(student)}
+                                onClick={() =>
+                                  handleDeleteStudent(student)
+                                }
                                 className="rounded-md p-2 text-red-500 hover:bg-red-50"
                               >
                                 <Trash2 size={18} />
@@ -893,10 +705,13 @@ export default function StudentList() {
             <div className="grid gap-3 px-4 pb-4 md:hidden">
               {filteredStudents.length > 0 ? (
                 filteredStudents.map((student) => {
-                  const percentage = Math.round(
-                    (student.submittedCount /
-                      Math.max(student.requiredCount, 1)) *
+                  const percentage = Math.min(
+                    100,
+                    Math.round(
+                      (student.submittedCount /
+                        Math.max(student.requiredCount, 1)) *
                       100,
+                    ),
                   );
 
                   return (
@@ -909,6 +724,7 @@ export default function StudentList() {
                           <h3 className="break-words text-sm font-semibold">
                             {student.studentName}
                           </h3>
+
                           <p className="mt-1 text-xs text-slate-500">
                             {student.studentId}
                           </p>
@@ -919,10 +735,8 @@ export default function StudentList() {
                             type="button"
                             aria-label={`View ${student.studentName}`}
                             onClick={() =>
-                              router.push(
-                                `/student-profile-information?id=${encodeURIComponent(
-                                  student.studentId,
-                                )}`,
+                              openStudentProfile(
+                                student.studentId,
                               )
                             }
                             className="rounded-md p-2 text-blue-600 hover:bg-blue-50"
@@ -933,7 +747,9 @@ export default function StudentList() {
                           <button
                             type="button"
                             aria-label={`Delete ${student.studentName}`}
-                            onClick={() => handleDeleteStudent(student)}
+                            onClick={() =>
+                              handleDeleteStudent(student)
+                            }
                             className="rounded-md p-2 text-red-500 hover:bg-red-50"
                           >
                             <Trash2 size={17} />
@@ -946,6 +762,7 @@ export default function StudentList() {
                           <p className="text-[10px] uppercase text-slate-400">
                             Course
                           </p>
+
                           <p className="mt-1 break-words text-xs">
                             {getCourseLabel(student.course)}
                           </p>
@@ -955,6 +772,7 @@ export default function StudentList() {
                           <p className="text-[10px] uppercase text-slate-400">
                             Email
                           </p>
+
                           <p className="mt-1 break-all text-xs">
                             {student.email}
                           </p>
@@ -964,6 +782,7 @@ export default function StudentList() {
                           <p className="text-[10px] uppercase text-slate-400">
                             College / Classification
                           </p>
+
                           <p className="mt-1 break-words text-xs">
                             {student.college}
                           </p>
@@ -973,6 +792,7 @@ export default function StudentList() {
                           <p className="text-[10px] uppercase text-slate-400">
                             Year Level
                           </p>
+
                           <p className="mt-1 text-xs">
                             {student.yearLevel}
                           </p>
@@ -985,6 +805,7 @@ export default function StudentList() {
                             {student.submittedCount}/
                             {student.requiredCount} documents
                           </span>
+
                           <span className="text-[10px] text-slate-500">
                             {percentage}%
                           </span>
@@ -995,7 +816,9 @@ export default function StudentList() {
                             className={`h-full ${progressBarClass(
                               student.progress,
                             )}`}
-                            style={{ width: `${percentage}%` }}
+                            style={{
+                              width: `${percentage}%`,
+                            }}
                           />
                         </div>
 
