@@ -7,8 +7,11 @@ import {
   ShieldCheck, UserRound, X,
 } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
-import { getAccounts, getCurrentUser, type UserProfile } from "@/lib/auth";
-import { getAuditLogs, type AuditAction, type AuditLog } from "@/lib/validations/audit-logs";
+import { getAuditLogs } from "@/lib/storage/audit-logs";
+import { getAccounts, getCurrentUser } from "@/lib/storage/accounts";
+import type { UserProfile } from "@/lib/types/account";
+import type { AuditAction, AuditLog } from "@/lib/types/audit-log";
+import { validateDateRange } from "@/lib/validations/audit-logs";
 
 const actionStyles: Record<AuditAction, string> = {
   "Sign In": "bg-blue-50 text-blue-700",
@@ -88,16 +91,9 @@ export default function AuditLogs() {
   const today = new Date().toISOString().slice(0, 10);
 
   const validateDates = (nextFrom: string, nextTo: string) => {
-    if (nextFrom && nextTo && nextFrom > nextTo) {
-      setDateError("Start date must be on or before the end date.");
-      return false;
-    }
-    if ((nextFrom && nextFrom > today) || (nextTo && nextTo > today)) {
-      setDateError("Date range cannot include a future date.");
-      return false;
-    }
-    setDateError("");
-    return true;
+    const error = validateDateRange(nextFrom, nextTo, today);
+    setDateError(error ?? "");
+    return !error;
   };
   const changeFrom = (value: string) => {
     if (!validateDates(value, toDate)) return;

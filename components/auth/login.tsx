@@ -11,6 +11,10 @@ import Button from "@/components/ui/button";
 import Checkbox from "@/components/ui/checkbox";
 
 import { login } from "@/lib/auth";
+import {
+  getRememberedUsername,
+  saveRememberedUsername,
+} from "@/lib/storage/accounts";
 import { validateLogin, type LoginErrors } from "@/lib/validations/login";
 
 export default function Login() {
@@ -24,7 +28,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const rememberedUsername = localStorage.getItem("rememberedUsername");
+    const rememberedUsername = getRememberedUsername();
 
     if (rememberedUsername) {
       setUsernameOrEmail(rememberedUsername);
@@ -58,11 +62,7 @@ export default function Login() {
       return;
     }
 
-    if (rememberMe) {
-      localStorage.setItem("rememberedUsername", usernameOrEmail.trim());
-    } else {
-      localStorage.removeItem("rememberedUsername");
-    }
+    saveRememberedUsername(rememberMe ? usernameOrEmail.trim() : null);
 
     router.push("/profile");
   }

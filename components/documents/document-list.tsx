@@ -4,6 +4,7 @@ import {
   ChangeEvent,
   FormEvent,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -21,41 +22,26 @@ import {
   X,
 } from "lucide-react";
 
-import { logActivity } from "@/lib/validations/audit-logs";
 import Sidebar from "@/components/layout/sidebar";
 import Topbar from "@/components/layout/topbar";
 import WelcomeBanner from "@/components/layout/welcome-banner";
+import GroupedSelect from "@/components/ui/grouped-select";
 import Select from "@/components/ui/select";
 
 import {
   COURSE_MAJORS,
   DOCUMENT_TYPES,
+  PROGRAMS_BY_COLLEGE,
   YEAR_LEVELS,
-  validateCourse,
-  validateDocumentType,
-  validateMajor,
-  validateStudentEmail,
-  validateStudentId,
-  validateStudentName,
-  validateYearLevel,
-} from "@/lib/validations/students-documents";
-
-type StudentDocument = {
-  id: string;
-  studentId: string;
-  studentName: string;
-  course: string;
-  major: string;
-  yearLevel: string;
-  documentType: string;
-  dateSubmitted: string;
-  email: string;
-  remarks: string;
-  fileName: string;
-  fileData: string;
-};
-
-const STORAGE_KEY = "demo-student-documents";
+} from "@/lib/constants/student";
+import { logActivity } from "@/lib/storage/audit-logs";
+import {
+  addStudentDocument,
+  getStudentDocuments,
+} from "@/lib/storage/student-documents";
+import type { StudentDocument } from "@/lib/types/student";
+import { validateDocumentFile } from "@/lib/validations/files";
+import { validateStudentDocumentForm } from "@/lib/validations/students-documents";
 
 const getTodayDate = () => {
   const today = new Date();
@@ -96,6 +82,22 @@ export default function DocumentList() {
 
   const availableMajors = COURSE_MAJORS[course] ?? [];
 
+  // Course choices grouped under their college, spelled out in full.
+  const courseGroups = useMemo(
+    () =>
+      Object.entries(PROGRAMS_BY_COLLEGE).map(
+        ([college, programs]) => ({
+          group: college,
+          options: programs.map((program) => ({
+            value: program.code,
+            label: program.label,
+            description: program.code,
+          })),
+        })
+      ),
+    []
+  );
+
 
 
   useEffect(() => {
@@ -122,10 +124,10 @@ export default function DocumentList() {
     setError("");
     setMessage("");
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError(
-        "File size must not exceed 5MB for this demo."
-      );
+    const fileError = validateDocumentFile(file);
+
+    if (fileError) {
+      setError(fileError);
 
       event.target.value = "";
       return;
@@ -188,154 +190,32 @@ export default function DocumentList() {
     setError("");
     setMessage("");
 
-    const normalizedStudentId =
-      studentId.trim().toUpperCase();
+    const validationError = validateStudentDocumentForm(
+      {
+        studentId,
+        studentName,
+        email,
+        course,
+        major,
+        yearLevel,
+        documentType,
+        dateSubmitted,
+        hasFile: Boolean(selectedFile && filePreview),
+      },
+      getStudentDocuments()
+    );
 
-    const normalizedStudentName = studentName
-      .trim()
-      .replace(/\s+/g, " ")
-      .toLowerCase();
-
-    const normalizedEmail =
-      email.trim().toLowerCase();
-
-    const studentIdError =
-      validateStudentId(normalizedStudentId);
-
-    if (studentIdError) {
-      setError(studentIdError);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
-    const studentNameError =
-      validateStudentName(studentName);
-
-    if (studentNameError) {
-      setError(studentNameError);
-      return;
-    }
-
-    const studentEmailError =
-      validateStudentEmail(email);
-
-    if (studentEmailError) {
-      setError(studentEmailError);
-      return;
-    }
-
-    const courseError =
-      validateCourse(course);
-
-    if (courseError) {
-      setError(courseError);
-      return;
-    }
-
-    const majorError =
-      validateMajor(course, major);
-
-    if (majorError) {
-      setError(majorError);
-      return;
-    }
-
-    const yearLevelError =
-      validateYearLevel(yearLevel);
-
-    if (yearLevelError) {
-      setError(yearLevelError);
-      return;
-    }
-
-    const documentTypeError =
-      validateDocumentType(documentType);
-
-    if (documentTypeError) {
-      setError(documentTypeError);
-      return;
-    }
-
-    if (!dateSubmitted) {
-      setError("Date submitted is required.");
-      return;
-    }
-
-    if (!selectedFile || !filePreview) {
-      setError("Please upload a document.");
-      return;
-    }
+    if (!selectedFile) return;
 
     try {
-      const saved =
-        localStorage.getItem(STORAGE_KEY);
-
-      let existingDocuments: StudentDocument[] = [];
-
-      if (saved) {
-        try {
-          const parsed: unknown = JSON.parse(saved);
-
-          if (Array.isArray(parsed)) {
-            existingDocuments =
-              parsed as StudentDocument[];
-          }
-        } catch {
-          existingDocuments = [];
-        }
-      }
-
-      const duplicateStudentId =
-        existingDocuments.some(
-          (document) =>
-            document.studentId
-              ?.trim()
-              .toUpperCase() ===
-            normalizedStudentId
-        );
-
-      if (duplicateStudentId) {
-        setError(
-          `Student ID ${normalizedStudentId} already exists.`
-        );
-        return;
-      }
-
-      const duplicateStudentName =
-        existingDocuments.some(
-          (document) =>
-            document.studentName
-              ?.trim()
-              .replace(/\s+/g, " ")
-              .toLowerCase() ===
-            normalizedStudentName
-        );
-
-      if (duplicateStudentName) {
-        setError(
-          "A student with this name already exists."
-        );
-        return;
-      }
-
-      const duplicateEmail =
-        existingDocuments.some(
-          (document) =>
-            document.email
-              ?.trim()
-              .toLowerCase() ===
-            normalizedEmail
-        );
-
-      if (duplicateEmail) {
-        setError(
-          "This email address is already registered to a student."
-        );
-        return;
-      }
-
       const newDocument: StudentDocument = {
         id: crypto.randomUUID(),
-        studentId: normalizedStudentId,
+        studentId: studentId.trim().toUpperCase(),
         studentName: studentName
           .trim()
           .replace(/\s+/g, " "),
@@ -344,23 +224,15 @@ export default function DocumentList() {
         yearLevel: yearLevel.trim(),
         documentType,
         dateSubmitted,
-        email: normalizedEmail,
+        email: email.trim().toLowerCase(),
         remarks: remarks.trim(),
         fileName: selectedFile.name,
         fileData: filePreview,
       };
 
-      const updatedDocuments = [
-        ...existingDocuments,
-        newDocument,
-      ];
+      addStudentDocument(newDocument);
 
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updatedDocuments)
-      );
-      
-            logActivity({
+      logActivity({
         action: "Document Uploaded",
         resourceType: "Document",
         resource: `${documentType} - ${newDocument.studentName}`,
@@ -504,16 +376,11 @@ export default function DocumentList() {
                         className="shrink-0 text-slate-400"
                       />
 
-                      <Select
+                      <GroupedSelect
                         value={course}
                         onChange={handleCourseChange}
                         placeholder="Select course"
-                        options={Object.keys(
-                          COURSE_MAJORS
-                        ).map((courseOption) => ({
-                          label: courseOption,
-                          value: courseOption,
-                        }))}
+                        groups={courseGroups}
                         className="flex-1"
                       />
                     </div>

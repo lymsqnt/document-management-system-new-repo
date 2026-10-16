@@ -1,3 +1,9 @@
+import {
+  ACCOUNT_EMAIL_PATTERN,
+  FULL_NAME_PATTERN,
+  USERNAME_PATTERN,
+} from "@/lib/validations/patterns";
+
 export type CreateAccountData = {
   fullName: string;
   username: string;
@@ -13,43 +19,22 @@ export type CreateAccountErrors = Partial<
   Record<keyof CreateAccountData, string>
 >;
 
-export const USERNAME_PATTERN =
-  /^(?=.*[A-Za-z])(?=.*[^A-Za-z\d]).+$/;
-
-export const EMAIL_PATTERN =
-  /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
-
-/** Letters (incl. accents/ñ), spaces, periods, apostrophes and hyphens only. No numbers. */
-export const FULL_NAME_PATTERN = /^\p{L}[\p{L}\s.'’-]*$/u;
-
 /* ------------------------------------------------------------------ */
 /* Helpers for the duplicate full-name check                           */
 /* ------------------------------------------------------------------ */
 
 /** Trim, collapse repeated spaces, ignore letter case. */
-function normalizeName(value: string): string {
+export function normalizeName(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-/** Reads the registered accounts saved by the Create Account page. */
-function getSavedAccounts(): { fullName?: string }[] {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const parsed: unknown = JSON.parse(
-      localStorage.getItem("demoAccounts") || "[]"
-    );
-
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function isFullNameTaken(fullName: string): boolean {
+function isFullNameTaken(
+  fullName: string,
+  existingAccounts: { fullName?: string }[]
+): boolean {
   const entered = normalizeName(fullName);
 
-  return getSavedAccounts().some(
+  return existingAccounts.some(
     (account) => normalizeName(account.fullName ?? "") === entered
   );
 }
@@ -59,7 +44,8 @@ function isFullNameTaken(fullName: string): boolean {
 /* ------------------------------------------------------------------ */
 
 export function validateCreateAccount(
-  data: CreateAccountData
+  data: CreateAccountData,
+  existingAccounts: { fullName?: string }[]
 ): CreateAccountErrors {
   const errors: CreateAccountErrors = {};
 
@@ -70,7 +56,7 @@ export function validateCreateAccount(
   } else if (!FULL_NAME_PATTERN.test(data.fullName.trim())) {
     errors.fullName =
       "Full name must contain letters only (no numbers or symbols).";
-  } else if (isFullNameTaken(data.fullName)) {
+  } else if (isFullNameTaken(data.fullName, existingAccounts)) {
     errors.fullName = "This full name is already registered.";
   }
 
@@ -93,7 +79,7 @@ export function validateCreateAccount(
 
   if (!email) {
     errors.email = "Email address is required.";
-  } else if (!EMAIL_PATTERN.test(email)) {
+  } else if (!ACCOUNT_EMAIL_PATTERN.test(email)) {
     errors.email = "Please enter a valid email address.";
   }
 

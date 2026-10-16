@@ -29,14 +29,19 @@ import Sidebar from "@/components/layout/sidebar";
 import Topbar from "@/components/layout/topbar";
 import ProfileInput from "@/components/ui/profileinput";
 import ProfileSelect from "@/components/ui/profileselect";
-import { ROLES, DEPARTMENTS, GENDERS } from "@/lib/constants";
+import { ROLES, DEPARTMENTS, GENDERS } from "@/lib/constants/account";
 import {
-  getCurrentUser,
   updateProfile,
   updatePassword,
   getAccountPassword,
-  type UserProfile,
 } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/storage/accounts";
+import type { UserProfile } from "@/lib/types/account";
+import { validateProfilePhoto } from "@/lib/validations/files";
+import {
+  validateNewPassword,
+  validateProfile,
+} from "@/lib/validations/profile";
 
 type ProfileData = UserProfile;
 
@@ -142,21 +147,10 @@ export default function Profile() {
     setSaved(false);
     setSaveError("");
 
-    if (
-      !profile.fullName.trim() ||
-      !profile.username.trim() ||
-      !profile.email.trim() ||
-      !profile.role.trim() ||
-      !profile.department.trim()
-    ) {
-      setSaveError("Please fill in all required fields.");
-      return;
-    }
+    const validationError = validateProfile(profile, originalAccount.username);
 
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailPattern.test(profile.email.trim())) {
-      setSaveError("Please enter a valid email address.");
+    if (validationError) {
+      setSaveError(validationError);
       return;
     }
 
@@ -209,8 +203,10 @@ export default function Profile() {
     setPasswordError("");
     setPasswordSaved(false);
 
-    if (password.length < 8) {
-      setPasswordError("Password must be at least 8 characters.");
+    const passwordValidationError = validateNewPassword(password);
+
+    if (passwordValidationError) {
+      setPasswordError(passwordValidationError);
       return;
     }
 
@@ -235,8 +231,10 @@ export default function Profile() {
 
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setSaveError("Please select a valid image file.");
+    const photoError = validateProfilePhoto(file);
+
+    if (photoError) {
+      setSaveError(photoError);
       return;
     }
 

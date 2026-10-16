@@ -14,25 +14,13 @@ import ActivityChart from "@/components/dashboard/activitychart";
 import QuickActions from "@/components/dashboard/quick-actions";
 import RecentStudents from "@/components/dashboard/recent-students";
 
-import { getAccounts } from "@/lib/auth";
-
-const STORAGE_KEY = "demo-student-documents";
-
-type StudentDocument = {
-  id: string;
-  studentId: string;
-  studentName: string;
-  course: string;
-  major: string;
-  yearLevel: string;
-  documentType: string;
-  dateSubmitted: string;
-  email: string;
-  remarks: string;
-  fileName: string;
-  fileData?: string;
-  profileImage?: string;
-};
+import { YEAR_LEVELS } from "@/lib/constants/student";
+import { ACCOUNTS_KEY, getAccounts } from "@/lib/storage/accounts";
+import {
+  getStudentDocuments,
+  STUDENT_DOCUMENTS_KEY,
+} from "@/lib/storage/student-documents";
+import type { StudentDocument } from "@/lib/types/student";
 
 type DashboardStudent = {
   studentId: string;
@@ -82,25 +70,7 @@ export default function Dashboard() {
     if (typeof window === "undefined") return;
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-
-      if (!stored) {
-        setDocuments([]);
-        setStudents([]);
-        setTotalUsers(getAccounts().length);
-        return;
-      }
-
-      const parsed: unknown = JSON.parse(stored);
-
-      if (!Array.isArray(parsed)) {
-        setDocuments([]);
-        setStudents([]);
-        setTotalUsers(getAccounts().length);
-        return;
-      }
-
-      const records = parsed as StudentDocument[];
+      const records = getStudentDocuments();
       setDocuments(records);
 
       const studentMap = new Map<string, DashboardStudent>();
@@ -165,7 +135,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY || event.key === "demoAccounts") {
+      if (event.key === STUDENT_DOCUMENTS_KEY || event.key === ACCOUNTS_KEY) {
         loadDashboardData();
       }
     };
@@ -187,10 +157,7 @@ export default function Dashboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  /* Only 1st–4th Year are supported by the student validation. */
-  const yearLevels = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
-
-  const yearLevelData = yearLevels.map((yearLevel) => ({
+  const yearLevelData = YEAR_LEVELS.map((yearLevel) => ({
     label: yearLevel,
     value: students.filter((student) => student.yearLevel === yearLevel)
       .length,

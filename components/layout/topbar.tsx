@@ -2,7 +2,8 @@
 
 import { Bell, Menu, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getCurrentUser, type UserProfile } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/storage/accounts";
+import type { UserProfile } from "@/lib/types/account";
 
 type TopbarProps = {
   title: string;

@@ -1,4 +1,4 @@
-import { getAccounts, getCurrentUser } from "@/lib/auth";
+import { getAccounts, getCurrentUser } from "@/lib/storage/accounts";
 
 /**
  * active  = signed in on this browser right now

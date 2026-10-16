@@ -26,26 +26,18 @@ import {
 import Sidebar from "@/components/layout/sidebar";
 import Topbar from "@/components/layout/topbar";
 
-import { DOCUMENT_TYPES } from "@/lib/validations/students-documents";
-import { logActivity } from "@/lib/validations/audit-logs";
-
-type StudentDocument = {
-  id: string;
-  studentId: string;
-  studentName: string;
-  course: string;
-  major: string;
-  yearLevel: string;
-  documentType: string;
-  dateSubmitted: string;
-  email: string;
-  remarks: string;
-  fileName: string;
-  fileData: string;
-  profileImage?: string;
-};
-
-const STORAGE_KEY = "demo-student-documents";
+import { DOCUMENT_TYPES } from "@/lib/constants/student";
+import { logActivity } from "@/lib/storage/audit-logs";
+import {
+  deleteStudentDocument,
+  getDocumentsByStudentId,
+  upsertStudentDocuments,
+} from "@/lib/storage/student-documents";
+import type { StudentDocument } from "@/lib/types/student";
+import {
+  validateRequirementFile,
+  validateStudentPhoto,
+} from "@/lib/validations/files";
 
 export default function StudentProfileInformation() {
   const searchParams = useSearchParams();
@@ -80,27 +72,7 @@ export default function StudentProfileInformation() {
    */
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-
-      if (!stored) {
-        setDocuments([]);
-        setLoading(false);
-        return;
-      }
-
-      const parsed: StudentDocument[] = JSON.parse(stored);
-
-      const normalizedStudentId = studentId
-        .trim()
-        .toUpperCase();
-
-      const filteredDocuments = parsed.filter(
-        (document) =>
-          document.studentId?.trim().toUpperCase() ===
-          normalizedStudentId
-      );
-
-      setDocuments(filteredDocuments);
+      setDocuments(getDocumentsByStudentId(studentId));
     } catch (error) {
       console.error(
         "Failed to load student documents:",
@@ -154,8 +126,7 @@ export default function StudentProfileInformation() {
   };
 
   /*
-   * Save updated student documents
-   * into localStorage.
+   * Save updated student documents.
    */
   const saveDocuments = (
     updatedDocuments: StudentDocument[]
@@ -165,58 +136,7 @@ export default function StudentProfileInformation() {
     }
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-
-      if (!stored) {
-        return;
-      }
-
-      const parsed: StudentDocument[] =
-        JSON.parse(stored);
-
-      const normalizedStudentId =
-        student.studentId.trim().toUpperCase();
-
-      const updatedAllDocuments = parsed.map(
-        (document) => {
-          if (
-            document.studentId?.trim().toUpperCase() ===
-            normalizedStudentId
-          ) {
-            const updatedStudentDocument =
-              updatedDocuments.find(
-                (updatedDocument) =>
-                  updatedDocument.id === document.id
-              );
-
-            if (updatedStudentDocument) {
-              return updatedStudentDocument;
-            }
-          }
-
-          return document;
-        }
-      );
-
-      /*
-       * Add newly created documents.
-       */
-      updatedDocuments.forEach((updatedDocument) => {
-        const alreadyExists =
-          updatedAllDocuments.some(
-            (document) =>
-              document.id === updatedDocument.id
-          );
-
-        if (!alreadyExists) {
-          updatedAllDocuments.push(updatedDocument);
-        }
-      });
-
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updatedAllDocuments)
-      );
+      upsertStudentDocuments(updatedDocuments);
 
       setDocuments(updatedDocuments);
     } catch (error) {
@@ -243,20 +163,10 @@ export default function StudentProfileInformation() {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image file.");
-      event.target.value = "";
-      return;
-    }
+    const photoError = validateStudentPhoto(file);
 
-    /*
-     * Maximum profile picture size: 5 MB
-     */
-    if (file.size > 5 * 1024 * 1024) {
-      alert(
-        "Profile image must be smaller than 5 MB."
-      );
-
+    if (photoError) {
+      alert(photoError);
       event.target.value = "";
       return;
     }
@@ -298,31 +208,10 @@ export default function StudentProfileInformation() {
       return;
     }
 
-    const allowedTypes = [
-      "application/pdf",
-      "image/jpeg",
-      "image/png",
-      "image/jpg",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
+    const fileError = validateRequirementFile(file);
 
-    if (!allowedTypes.includes(file.type)) {
-      alert(
-        "Please upload a PDF, JPG, PNG, DOC, or DOCX file."
-      );
-
-      event.target.value = "";
-      return;
-    }
-
-    /*
-     * Maximum document size: 10 MB
-     */
-    if (file.size > 10 * 1024 * 1024) {
-      alert(
-        "The document must be smaller than 10 MB."
-      );
+    if (fileError) {
+      alert(fileError);
 
       event.target.value = "";
       return;
@@ -433,25 +322,7 @@ export default function StudentProfileInformation() {
     }
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-
-      if (!stored) {
-        return;
-      }
-
-      const parsed: StudentDocument[] =
-        JSON.parse(stored);
-
-      const updatedAllDocuments =
-        parsed.filter(
-          (document) =>
-            document.id !== documentToDelete.id
-        );
-
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(updatedAllDocuments)
-      );
+      deleteStudentDocument(documentToDelete.id);
 
       const updatedDocuments = documents.filter(
         (document) =>

@@ -30,6 +30,17 @@ body {
   animation: wave-hand 2s ease-in-out 0.4s 2;
 }
 
+@keyframes grouped-select-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wave-hand {
     animation: none;

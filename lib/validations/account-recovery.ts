@@ -1,3 +1,5 @@
+import { EMAIL_PATTERN } from "@/lib/validations/patterns";
+
 export type AccountRecoveryData = {
     email: string;
     notRobot: boolean;
@@ -19,7 +21,7 @@ export function validateAccountRecovery(
         errors.email = "Email address is required.";
     } else if (email !== email.toLowerCase()) {
         errors.email = "Email address must be in lowercase.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    } else if (!EMAIL_PATTERN.test(email)) {
         errors.email = "Please enter a valid email address.";
     }
 

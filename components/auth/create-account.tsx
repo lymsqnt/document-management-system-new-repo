@@ -1,21 +1,14 @@
 "use client";
 
-import { ROLES, DEPARTMENTS } from "@/lib/constants";
+import { ROLES, DEPARTMENTS } from "@/lib/constants/account";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { UserRoundPlus, UserRound, AtSign,Mail, BriefcaseBusiness, LockKeyhole, Building2, Eye, EyeOff, } from "lucide-react";
 
+import { createAccount } from "@/lib/auth";
+import { getAccounts } from "@/lib/storage/accounts";
 import { validateCreateAccount, type CreateAccountData, type CreateAccountErrors,} from "@/lib/validations/create-account";
-
-type DemoAccount = {
-  fullName: string;
-  username: string;
-  email: string;
-  role: string;
-  department: string;
-  password: string;
-};
 
 const initialForm: CreateAccountData = {
   fullName: "",
@@ -60,7 +53,7 @@ export default function CreateAccount() {
     event.preventDefault();
     setFormError("");
 
-    const validationErrors = validateCreateAccount(form);
+    const validationErrors = validateCreateAccount(form, getAccounts());
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) {
@@ -70,44 +63,13 @@ export default function CreateAccount() {
     setLoading(true);
 
     try {
-      const existingAccounts: DemoAccount[] = JSON.parse(
-        localStorage.getItem("demoAccounts") || "[]"
-      );
+      const result = createAccount(form);
 
-      const emailExists = existingAccounts.some(
-        (account) =>
-          account.email.toLowerCase() === form.email.trim().toLowerCase()
-      );
-
-      const usernameExists = existingAccounts.some(
-        (account) =>
-          account.username.toLowerCase() ===
-          form.username.trim().toLowerCase()
-      );
-
-      if (emailExists || usernameExists) {
-        setFormError(
-          emailExists
-            ? "This email address is already registered."
-            : "This username is already taken."
-        );
+      if (!result.success) {
+        setFormError(result.message);
         setLoading(false);
         return;
       }
-
-      const newAccount: DemoAccount = {
-        fullName: form.fullName.trim(),
-        username: form.username.trim(),
-        email: form.email.trim().toLowerCase(),
-        role: form.role,
-        department: form.department,
-        password: form.password,
-      };
-
-      localStorage.setItem(
-        "demoAccounts",
-        JSON.stringify([...existingAccounts, newAccount])
-      );
 
       // Registration is complete. The user can now log in.
       router.push("/login");

@@ -18,52 +18,31 @@ import {
 import Sidebar from "@/components/layout/sidebar";
 import Topbar from "@/components/layout/topbar";
 import WelcomeBanner from "@/components/layout/welcome-banner";
-import { logActivity } from "@/lib/validations/audit-logs";
 import {
+  COLLEGE_COURSES,
   COURSE_MAJORS,
   DOCUMENT_TYPES,
   YEAR_LEVELS,
-} from "@/lib/validations/students-documents";
+} from "@/lib/constants/student";
+import { logActivity } from "@/lib/storage/audit-logs";
+import {
+  deleteStudent,
+  getStudentDocuments,
+  STUDENT_DOCUMENTS_KEY,
+  STUDENT_DOCUMENTS_UPDATED_EVENT,
+} from "@/lib/storage/student-documents";
+import {
+  buildStudentSummaries,
+  getCourseLabel,
+  getYearSortValue,
+} from "@/lib/students";
+import type { StudentSummary as Student } from "@/lib/types/student";
 
-type EnrollmentStatus = "Enrolled" | "Graduated" | "Transferred";
 type ProgressFilter =
   | "All Progress"
   | "Completed"
   | "Incomplete"
   | "No Documents Submitted";
-
-type StudentDocument = {
-  id: string;
-  studentId: string;
-  studentName: string;
-  college?: string;
-  classification?: string;
-  course?: string;
-  major?: string;
-  yearLevel?: string;
-  enrollmentStatus?: EnrollmentStatus;
-  documentType: string;
-  dateSubmitted: string;
-  email: string;
-  remarks?: string;
-  fileName: string;
-  fileData?: string;
-};
-
-type Student = {
-  studentName: string;
-  studentId: string;
-  course: string;
-  major: string;
-  yearLevel: string;
-  college: string;
-  email: string;
-  enrollmentStatus: EnrollmentStatus | "Not set";
-  submittedTypes: string[];
-  submittedCount: number;
-  requiredCount: number;
-  progress: "Completed" | "Incomplete" | "No Documents Submitted";
-};
 
 type FilterState = {
   college: string;
@@ -75,19 +54,7 @@ type FilterState = {
   search: string;
 };
 
-const STORAGE_KEY = "demo-student-documents";
 const ALL = "All";
-
-/**
- * Keep this mapping consistent with document-list.tsx.
- * Add the official college/course combinations for your school here.
- */
-const COLLEGE_COURSES: Record<string, string[]> = {
-  "College of Education": ["BSED", "BEED"],
-  "College of Information Technology": ["BSCS"],
-  "College of Business Administration": ["BSBA"],
-  "College of Criminology": ["BS Criminology"],
-};
 
 const EMPTY_FILTERS: FilterState = {
   college: ALL,
@@ -98,75 +65,6 @@ const EMPTY_FILTERS: FilterState = {
   progress: "All Progress",
   search: "",
 };
-
-function normalize(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function getCollegeFromCourse(
-  course: string,
-  storedCollege?: string,
-  storedClassification?: string,
-) {
-  if (storedCollege?.trim()) return storedCollege.trim();
-  if (storedClassification?.trim()) return storedClassification.trim();
-
-  const code = normalize(course);
-
-  for (const [college, courses] of Object.entries(COLLEGE_COURSES)) {
-    if (courses.some((item) => normalize(item) === code)) {
-      return college;
-    }
-  }
-
-  if (
-    code.includes("education") ||
-    code === "beed" ||
-    code === "bsed"
-  ) {
-    return "College of Education";
-  }
-
-  if (
-    code === "bsit" ||
-    code === "bscs" ||
-    code.includes("information technology") ||
-    code.includes("computer science")
-  ) {
-    return "College of Information Technology";
-  }
-
-  if (
-    code === "bsba" ||
-    code.includes("business administration")
-  ) {
-    return "College of Business Administration";
-  }
-
-  if (code.includes("criminology")) {
-    return "College of Criminology";
-  }
-
-  return "Unclassified";
-}
-
-function getCourseLabel(course: string) {
-  const labels: Record<string, string> = {
-    BSCS: "Bachelor of Science in Computer Science",
-    BSIT: "Bachelor of Science in Information Technology",
-    BSBA: "Bachelor of Science in Business Administration",
-    BSED: "Bachelor of Secondary Education",
-    BEED: "Bachelor of Elementary Education",
-    "BS Criminology": "BS Criminology",
-  };
-
-  return labels[course] ?? course;
-}
-
-function getYearSortValue(year: string) {
-  const index = YEAR_LEVELS.indexOf(year);
-  return index === -1 ? YEAR_LEVELS.length : index;
-}
 
 export default function StudentList() {
   const router = useRouter();
@@ -193,131 +91,7 @@ export default function StudentList() {
 
   const loadStudents = useCallback(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-
-      if (!stored) {
-        setStudents([]);
-        return;
-      }
-
-      const documents: StudentDocument[] = JSON.parse(stored);
-
-      if (!Array.isArray(documents)) {
-        setStudents([]);
-        return;
-      }
-
-      const studentMap = new Map<string, Student>();
-
-      documents.forEach((doc) => {
-        const studentId = doc.studentId?.trim();
-
-        if (!studentId) return;
-
-        const key = studentId.toUpperCase();
-        const course = doc.course?.trim() || "—";
-        const major = doc.major?.trim() || "—";
-        const yearLevel = doc.yearLevel?.trim() || "—";
-        const college = getCollegeFromCourse(
-          course,
-          doc.college,
-          doc.classification,
-        );
-
-        let student = studentMap.get(key);
-
-        if (!student) {
-          student = {
-            studentName: doc.studentName?.trim() || "Unnamed Student",
-            studentId,
-            course,
-            major,
-            yearLevel,
-            college,
-            email: doc.email?.trim() || "—",
-            enrollmentStatus: doc.enrollmentStatus || "Not set",
-            submittedTypes: [],
-            submittedCount: 0,
-            requiredCount: DOCUMENT_TYPES.length,
-            progress: "No Documents Submitted",
-          };
-
-          studentMap.set(key, student);
-        } else {
-          if (
-            student.studentName === "Unnamed Student" &&
-            doc.studentName?.trim()
-          ) {
-            student.studentName = doc.studentName.trim();
-          }
-
-          if (student.course === "—" && course !== "—") {
-            student.course = course;
-            student.college = getCollegeFromCourse(
-              course,
-              doc.college,
-              doc.classification,
-            );
-          }
-
-          if (student.major === "—" && major !== "—") {
-            student.major = major;
-          }
-
-          if (student.yearLevel === "—" && yearLevel !== "—") {
-            student.yearLevel = yearLevel;
-          }
-
-          if (student.email === "—" && doc.email?.trim()) {
-            student.email = doc.email.trim();
-          }
-
-          if (doc.enrollmentStatus) {
-            student.enrollmentStatus = doc.enrollmentStatus;
-          }
-
-          if (doc.college?.trim() || doc.classification?.trim()) {
-            student.college = getCollegeFromCourse(
-              student.course,
-              doc.college,
-              doc.classification,
-            );
-          }
-        }
-
-        const documentType = doc.documentType?.trim();
-
-        if (
-          documentType &&
-          (DOCUMENT_TYPES as readonly string[]).includes(documentType) &&
-          !student.submittedTypes.includes(documentType)
-        ) {
-          student.submittedTypes.push(documentType);
-        }
-      });
-
-      const result = Array.from(studentMap.values()).map((student) => {
-        const submittedCount = student.submittedTypes.length;
-
-        const progress: Student["progress"] =
-          submittedCount === 0
-            ? "No Documents Submitted"
-            : submittedCount >= student.requiredCount
-              ? "Completed"
-              : "Incomplete";
-
-        return {
-          ...student,
-          submittedCount,
-          progress,
-        };
-      });
-
-      result.sort((a, b) =>
-        a.studentName.localeCompare(b.studentName),
-      );
-
-      setStudents(result);
+      setStudents(buildStudentSummaries(getStudentDocuments()));
     } catch (error) {
       console.error("Failed to load students:", error);
       setStudents([]);
@@ -328,13 +102,13 @@ export default function StudentList() {
     loadStudents();
 
     const onStorage = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY) loadStudents();
+      if (event.key === STUDENT_DOCUMENTS_KEY) loadStudents();
     };
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("focus", loadStudents);
     window.addEventListener(
-      "student-documents-updated",
+      STUDENT_DOCUMENTS_UPDATED_EVENT,
       loadStudents,
     );
 
@@ -342,11 +116,22 @@ export default function StudentList() {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", loadStudents);
       window.removeEventListener(
-        "student-documents-updated",
+        STUDENT_DOCUMENTS_UPDATED_EVENT,
         loadStudents,
       );
     };
   }, [loadStudents]);
+
+  useEffect(() => {
+    if (!filterOpen) return;
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFilterOpen(false);
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [filterOpen]);
 
   // Include configured colleges even when there are no saved students.
   const colleges = useMemo(() => {
@@ -489,30 +274,18 @@ export default function StudentList() {
     if (!confirmed) return;
 
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return;
-
-      const documents: StudentDocument[] = JSON.parse(stored);
-      const id = student.studentId.trim().toUpperCase();
-
-      const updated = documents.filter(
-        (doc) => doc.studentId?.trim().toUpperCase() !== id,
-      );
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      const deletedCount = deleteStudent(student.studentId);
 
       logActivity({
         action: "Student Deleted",
         resourceType: "Student",
         resource: `${student.studentName} (${student.studentId})`,
-        details: `Deleted student record and ${
-          documents.length - updated.length
-        } document(s).`,
+        details: `Deleted student record and ${deletedCount} document(s).`,
       });
 
       loadStudents();
       window.dispatchEvent(
-        new Event("student-documents-updated"),
+        new Event(STUDENT_DOCUMENTS_UPDATED_EVENT),
       );
     } catch (error) {
       console.error("Failed to delete student:", error);
@@ -650,10 +423,19 @@ export default function StudentList() {
                 </button>
 
                 {filterOpen && (
+                  <>
+                  <button
+                    type="button"
+                    aria-label="Close filters overlay"
+                    onClick={() => setFilterOpen(false)}
+                    className="fixed inset-0 z-[100] bg-slate-950/40 backdrop-blur-[1px]"
+                  />
+
                   <section
                     role="dialog"
+                    aria-modal="true"
                     aria-label="Refine Students"
-                    className="fixed inset-x-3 top-20 z-[100] flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[min(80vh,680px)] sm:w-[390px]"
+                    className="fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
                   >
                     <header className="flex items-start justify-between border-b border-slate-100 px-4 py-3">
                       <div>
@@ -949,6 +731,7 @@ export default function StudentList() {
                       </div>
                     </footer>
                   </section>
+                  </>
                 )}
               </div>
             </div>

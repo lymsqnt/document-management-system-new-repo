@@ -1,33 +1,13 @@
-export const STUDENT_ID_PATTERN = /^[A-Z]{2}-\d{2}-\d{3}$/;
-
-export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export const COURSE_MAJORS: Record<string, string[]> = {
-  BSBA: [
-    "Marketing Management",
-    "Human Resource Management",
-    "Financial Management",
-  ],
-  BSED: ["Filipino", "Mathematics", "English"],
-  BSCS: [],
-  BEED: [],
-  "BS Criminology": [],
-};
-
-export const YEAR_LEVELS = [
-  "1st Year",
-  "2nd Year",
-  "3rd Year",
-  "4th Year",
-];
-
-export const DOCUMENT_TYPES = [
-  "Form 137",
-  "Diploma Copy",
-  "Report Card",
-  "Birth Certificate",
-  "Good Moral Certificate",
-];
+import {
+  COURSE_MAJORS,
+  DOCUMENT_TYPES,
+  YEAR_LEVELS,
+} from "@/lib/constants/student";
+import type { StudentDocument } from "@/lib/types/student";
+import {
+  EMAIL_PATTERN,
+  STUDENT_ID_PATTERN,
+} from "@/lib/validations/patterns";
 
 export function validateStudentId(studentId: string): string | null {
   const value = studentId.trim().toUpperCase();
@@ -147,6 +127,84 @@ export function validateDocumentType(
 
   if (!DOCUMENT_TYPES.includes(value)) {
     return "Please select a valid document type.";
+  }
+
+  return null;
+}
+
+export type StudentDocumentForm = {
+  studentId: string;
+  studentName: string;
+  email: string;
+  course: string;
+  major: string;
+  yearLevel: string;
+  documentType: string;
+  dateSubmitted: string;
+  hasFile: boolean;
+};
+
+function normalizeStudentName(value: string | undefined): string | undefined {
+  return value?.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/**
+ * Checks the Add Student form and makes sure the student ID, name and email
+ * are not used yet. Returns the first error message, or null if valid.
+ */
+export function validateStudentDocumentForm(
+  form: StudentDocumentForm,
+  existingDocuments: StudentDocument[]
+): string | null {
+  const studentId = form.studentId.trim().toUpperCase();
+
+  const fieldError =
+    validateStudentId(studentId) ??
+    validateStudentName(form.studentName) ??
+    validateStudentEmail(form.email) ??
+    validateCourse(form.course) ??
+    validateMajor(form.course, form.major) ??
+    validateYearLevel(form.yearLevel) ??
+    validateDocumentType(form.documentType);
+
+  if (fieldError) {
+    return fieldError;
+  }
+
+  if (!form.dateSubmitted) {
+    return "Date submitted is required.";
+  }
+
+  if (!form.hasFile) {
+    return "Please upload a document.";
+  }
+
+  if (
+    existingDocuments.some(
+      (document) => document.studentId?.trim().toUpperCase() === studentId
+    )
+  ) {
+    return `Student ID ${studentId} already exists.`;
+  }
+
+  const studentName = normalizeStudentName(form.studentName);
+
+  if (
+    existingDocuments.some(
+      (document) => normalizeStudentName(document.studentName) === studentName
+    )
+  ) {
+    return "A student with this name already exists.";
+  }
+
+  const email = form.email.trim().toLowerCase();
+
+  if (
+    existingDocuments.some(
+      (document) => document.email?.trim().toLowerCase() === email
+    )
+  ) {
+    return "This email address is already registered to a student.";
   }
 
   return null;

@@ -1,70 +1,58 @@
 import {
-  USERNAME_PATTERN,
-  FULL_NAME_PATTERN,
+  clearCurrentUser,
+  getAccounts,
+  getCurrentUser,
+  saveAccounts,
+  saveCurrentUser,
+} from "@/lib/storage/accounts";
+import type { DemoAccount, SafeUser, UserProfile } from "@/lib/types/account";
+import {
+  normalizeName,
+  type CreateAccountData,
 } from "@/lib/validations/create-account";
+import { validateNewPassword } from "@/lib/validations/profile";
 
-/** Trim, collapse repeated spaces, ignore letter case. */
-function normalizeName(value: string): string {
-  return value.trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-export type DemoAccount = {
-  fullName: string;
-  username: string;
-  email: string;
-  role: string;
-  department: string;
-  password: string;
-  address?: string;
-  birthday?: string;
-  gender?: string;
-  profileImage?: string;
-};
-
-export type UserProfile = {
-  fullName: string;
-  username: string;
-  email: string;
-  role: string;
-  department: string;
-  address: string;
-  birthday: string;
-  gender: string;
-  profileImage?: string;
-};
-
-export type SafeUser = Omit<DemoAccount, "password">;
-
-const ACCOUNTS_KEY = "demoAccounts";
-const CURRENT_USER_KEY = "currentUser";
-
-export function getAccounts(): DemoAccount[] {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const storedAccounts = localStorage.getItem(ACCOUNTS_KEY);
-
-    if (!storedAccounts) return [];
-
-    const parsedAccounts: unknown = JSON.parse(storedAccounts);
-
-    return Array.isArray(parsedAccounts)
-      ? (parsedAccounts as DemoAccount[])
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveAccounts(accounts: DemoAccount[]): void {
-  if (typeof window === "undefined") return;
-
-  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
-}
+type ActionResult = { success: true } | { success: false; message: string };
 
 function toSafeUser(account: DemoAccount): SafeUser {
   const { password: _password, ...safeUser } = account;
   return safeUser;
+}
+
+/** Saves a new account. Run validateCreateAccount on the form first. */
+export function createAccount(form: CreateAccountData): ActionResult {
+  const accounts = getAccounts();
+  const email = form.email.trim().toLowerCase();
+  const username = form.username.trim();
+
+  if (accounts.some((account) => account.email.toLowerCase() === email)) {
+    return {
+      success: false,
+      message: "This email address is already registered.",
+    };
+  }
+
+  if (
+    accounts.some(
+      (account) => account.username.toLowerCase() === username.toLowerCase()
+    )
+  ) {
+    return { success: false, message: "This username is already taken." };
+  }
+
+  saveAccounts([
+    ...accounts,
+    {
+      fullName: form.fullName.trim(),
+      username,
+      email,
+      role: form.role,
+      department: form.department,
+      password: form.password,
+    },
+  ]);
+
+  return { success: true };
 }
 
 export function login(
@@ -92,7 +80,7 @@ export function login(
 
   const safeUser = toSafeUser(matchedAccount);
 
-  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(safeUser));
+  saveCurrentUser(safeUser);
 
   return {
     success: true,
@@ -100,45 +88,16 @@ export function login(
   };
 }
 
-export function getCurrentUser(): UserProfile | null {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const storedUser = localStorage.getItem(CURRENT_USER_KEY);
-
-    if (!storedUser) return null;
-
-    const user = JSON.parse(storedUser) as Partial<UserProfile>;
-
-    return {
-      fullName: user.fullName ?? "",
-      username: user.username ?? "",
-      email: user.email ?? "",
-      role: user.role ?? "",
-      department: user.department ?? "",
-      address: user.address ?? "",
-      birthday: user.birthday ?? "",
-      gender: user.gender ?? "",
-      profileImage: user.profileImage ?? "",
-    };
-  } catch {
-    return null;
-  }
-}
-
 export function logout(): void {
-  if (typeof window === "undefined") return;
-
-  localStorage.removeItem(CURRENT_USER_KEY);
+  clearCurrentUser();
 }
 
+/** Saves profile changes. Run validateProfile on the form first. */
 export function updateProfile(
   oldUsername: string,
   oldEmail: string,
   profile: UserProfile
-):
-  | { success: true }
-  | { success: false; message: string } {
+): ActionResult {
   const accounts = getAccounts();
 
   const accountIndex = accounts.findIndex(
@@ -153,45 +112,9 @@ export function updateProfile(
     };
   }
 
-  if (!FULL_NAME_PATTERN.test(profile.fullName.trim())) {
-    return {
-      success: false,
-      message: "Full name must contain letters only (no numbers or symbols).",
-    };
-  }
-
   const newName = normalizeName(profile.fullName);
   const newUsername = profile.username.trim();
   const newEmail = profile.email.trim().toLowerCase();
-
-  // Username format: letters + special characters (only checked when changed,
-  // so older accounts can still edit their other details).
-  const usernameChanged =
-    newUsername.toLowerCase() !== oldUsername.trim().toLowerCase();
-
-  if (usernameChanged) {
-    if (newUsername.length < 3) {
-      return {
-        success: false,
-        message: "Username must be at least 3 characters.",
-      };
-    }
-
-    if (/\s/.test(newUsername)) {
-      return {
-        success: false,
-        message: "Username must not contain spaces.",
-      };
-    }
-
-    if (!USERNAME_PATTERN.test(newUsername)) {
-      return {
-        success: false,
-        message:
-          "Username must mix letters and special characters (e.g. @, _, ., -).",
-      };
-    }
-  }
 
   // Full name, username and email must not belong to ANOTHER account.
   const others = accounts.filter((_, index) => index !== accountIndex);
@@ -229,11 +152,7 @@ export function updateProfile(
   };
 
   saveAccounts(accounts);
-
-  localStorage.setItem(
-    CURRENT_USER_KEY,
-    JSON.stringify(toSafeUser(accounts[accountIndex]))
-  );
+  saveCurrentUser(toSafeUser(accounts[accountIndex]));
 
   return { success: true };
 }
@@ -270,7 +189,7 @@ export function changePassword(
   email: string,
   currentPassword: string,
   newPassword: string
-): { success: true } | { success: false; message: string } {
+): ActionResult {
   const accounts = getAccounts();
 
   const account = accounts.find(
@@ -288,11 +207,10 @@ export function changePassword(
     return { success: false, message: "Current password is incorrect." };
   }
 
-  if (newPassword.length < 8) {
-    return {
-      success: false,
-      message: "New password must be at least 8 characters.",
-    };
+  const passwordError = validateNewPassword(newPassword);
+
+  if (passwordError) {
+    return { success: false, message: passwordError };
   }
 
   account.password = newPassword;
@@ -314,7 +232,7 @@ export function findAccountByEmail(email: string): SafeUser | null {
 export function resetPasswordByEmail(
   email: string,
   newPassword: string
-): { success: true } | { success: false; message: string } {
+): ActionResult {
   const normalizedEmail = email.trim().toLowerCase();
   const accounts = getAccounts();
 
@@ -338,14 +256,8 @@ export function resetPasswordByEmail(
 
   const currentUser = getCurrentUser();
 
-  if (
-    typeof window !== "undefined" &&
-    currentUser?.email.toLowerCase() === normalizedEmail
-  ) {
-    localStorage.setItem(
-      CURRENT_USER_KEY,
-      JSON.stringify(toSafeUser(accounts[accountIndex]))
-    );
+  if (currentUser?.email.toLowerCase() === normalizedEmail) {
+    saveCurrentUser(toSafeUser(accounts[accountIndex]));
   }
 
   return { success: true };

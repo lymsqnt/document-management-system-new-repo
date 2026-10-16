@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarDays } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/storage/accounts";
 
 export default function WelcomeBanner() {
   const [displayName, setDisplayName] = useState("User");
